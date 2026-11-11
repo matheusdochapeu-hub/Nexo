@@ -35,18 +35,18 @@ fonte da verdade dos seus próprios dados.
 
 ## Rodar localmente
 
-``powershell
+```powershell
 # na pasta pai (5. IA), para todos os apps dividirem a mesma origem
 python -m http.server 8000
 # http://localhost:8000/nexo/
-``
+```
 
 ## Testes
 
-``powershell
+```powershell
 node --test test/*.test.js    # 137 testes
 npm run drift                 # diferenças dono × cópia, separando ajuste de bug
-``
+```
 
 Publicado em <https://matheusdochapeu-hub.github.io/Nexo/> (repo `Nexo`, Pages na `main`).
 Publicar = commitar na `main`; o Pages reconstrói sozinho.
