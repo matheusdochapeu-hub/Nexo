@@ -1,9 +1,11 @@
 # 🜂 Nexo — uma casa, três olhares
 
+> **No ar:** <https://matheusdochapeu-hub.github.io/Nexo/>
+
 > Camada unificada sobre os quatro apps da casa: **Matrix**, **Casa Maracaju**,
 > **Faturas** e **Atendimentos**. Começa como um shell de leitura; cresce em fases.
 
-**Versão 0.8.1 — Fase 3 em andamento.** Nenhum dos quatro apps foi alterado, e nenhum
+**Versão 0.9.0 — Fase 3 em andamento.** Nenhum dos quatro apps foi alterado, e nenhum
 depende do Nexo para funcionar.
 
 ![Nexo — tema compartilhado (embaixo) contra a divergência de hoje (acima)](docs/preview-tema-comparativo.jpg)
@@ -30,6 +32,7 @@ Três áreas, uma linguagem visual só:
 
 Mais:
 
+- **Nuvem opcional** (v0.9.0): regras de dono sincronizadas por Apps Script.
 - **Ajustes que viajam** (v0.8.0): exportar/importar regras e privacidade em JSON.
 - **Lista canônica de faturas** (v0.7.0): o Nexo lê a lista do dono e ignora a cópia do Matrix.
 - **Tema compartilhado** (v0.6.0): um CSS opt-in que unifica o chassi dos quatro apps.
@@ -165,6 +168,27 @@ dono por `npm run drift:gerar`. O Nexo já a consome:
 
 Ou seja: o Nexo já parou de herdar a divergência, **sem editar nenhum app**. Para os
 apps pararem também, falta cada um ler o arquivo compartilhado — decisão do dono.
+
+---
+
+## Nuvem (Apps Script, opcional)
+
+Sem isso, cada aparelho tem as suas regras. Com isso, as regras viajam.
+
+1. Planilha nova no Google Sheets → **Extensões → Apps Script**.
+2. Cole `apps_script.gs`, salve.
+3. **Configurações do projeto → Propriedades do script** → `NEXO_TOKEN` = uma senha longa.
+4. **Implantar → Nova implantação → App da Web** · executar como **Eu** · acesso
+   **Qualquer pessoa**.
+5. Copie a URL `/exec` e cole em **Nexo → Ajustes → Nuvem**, junto com o token.
+
+O que viaja: **só as regras de dono**. Privacidade é preferência de cada aparelho e não é
+aplicada da nuvem. O token fica só no aparelho — nunca vai no backup nem para a planilha.
+
+**Como sincroniza:** leitura por JSONP (o Apps Script não manda CORS), escrita por POST
+`no-cors` confirmada por uma leitura seguinte. Conflito é detectado por **revisão**: se a
+planilha mudou entre ler e gravar, a regra vence quem tiver o `em` mais recente — ninguém
+sobrescreve o outro em silêncio.
 
 ---
 

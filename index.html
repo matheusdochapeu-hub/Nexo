@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./icons/nexo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="./icons/nexo.svg">
-<link rel="stylesheet" href="./css/nexo.css?v=0.8.2">
+<link rel="stylesheet" href="./css/nexo.css?v=0.9.0">
 </head>
 <body data-privado="0">
 
@@ -52,6 +52,18 @@
 
   <div id="ajustes" class="nx-ajustes"></div>
 
+  <div class="nx-nuvem">
+    <p class="nx-ajustes-rotulo">Nuvem · Apps Script (opcional)</p>
+    <div class="nx-nuvem-linha">
+      <input id="sync-url" class="nx-input" type="url" inputmode="url" autocomplete="off" spellcheck="false"
+             placeholder="URL do App da Web (/exec)" aria-label="URL do Apps Script">
+      <input id="sync-token" class="nx-input" type="password" autocomplete="off"
+             placeholder="Token secreto" aria-label="Token do Apps Script">
+    </div>
+    <button class="nx-btn nx-btn--mini" id="sync-btn" type="button">Sincronizar ajustes</button>
+    <p class="nx-ajustes-nota" id="sync-nota">Opcional. Com URL e token, suas regras viajam entre aparelhos.</p>
+  </div>
+
   <footer class="nx-foot">
     <span>Lendo <span id="rodape-fontes">—</span></span>
     <span class="nx-foot-sep">Nexo <span id="versao">—</span> · somente leitura</span>
@@ -74,6 +86,6 @@
   </section>
 </div>
 
-<script type="module" src="./js/app.js?v=0.8.2"></script>
+<script type="module" src="./js/app.js?v=0.9.0"></script>
 </body>
 </html>

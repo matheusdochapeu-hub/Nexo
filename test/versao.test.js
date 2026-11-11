@@ -33,7 +33,8 @@ test('todo ?v= do index.html é a versão atual', () => {
 test('sw.js pré-cacheia os módulos do app', () => {
   for (const arquivo of [
     './js/core.js', './js/store.js', './js/app.js', './js/search.js',
-    './js/faturas.js', './shared/faturas-base.js', './css/nexo.css'
+    './js/faturas.js', './js/ajustes.js', './js/sync.js',
+    './shared/faturas-base.js', './css/nexo.css'
   ]) {
     assert.ok(sw.includes(arquivo), `sw.js deveria pré-cachear ${arquivo}`);
   }

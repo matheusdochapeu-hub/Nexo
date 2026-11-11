@@ -18,6 +18,8 @@ em nenhum app ainda.
 **ajuste do dono** (`-1` = item apagado no Faturas), não bug. Nexo consome a lista canônica;
 aposentar a cópia do Matrix virou dívida arquitetural, não urgência.
 **Fase 3.3** entregue: exportar/importar ajustes em JSON (`js/ajustes.js`).
+**Fase 3.4** entregue: publicado no GitHub Pages e sincronização opcional por Apps Script
+(`apps_script.gs` + `js/sync.js`).
 
 Este app **não substitui** nenhum dos quatro. Eles continuam funcionando sozinhos e são a
 fonte da verdade dos seus próprios dados.
@@ -40,9 +42,12 @@ python -m http.server 8000
 ## Testes
 
 ```powershell
-node --test test/*.test.js    # 110 testes
+node --test test/*.test.js    # 119 testes
 npm run drift                 # diferenças dono × cópia, separando ajuste de bug
 ```
+
+Publicado em <https://matheusdochapeu-hub.github.io/Nexo/> (repo `Nexo`, Pages na `main`).
+Publicar = commitar na `main`; o Pages reconstrói sozinho.
 
 O Node do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe` (só quando não há
 `node` no PATH).
@@ -56,6 +61,8 @@ O Node do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe` (só quando n
 | `js/search.js` | **puro**: índice e busca sobre os quatro apps. Testável no Node |
 | `js/faturas.js` | **puro**: recalcula faturas da lista canônica + `pv4_*` |
 | `js/ajustes.js` | **puro**: serializa/valida o backup de regras e privacidade |
+| `js/sync.js` | **puro no núcleo**: URL, mescla e conflito; rede por JSONP/POST |
+| `apps_script.gs` | backend opcional dos ajustes (Sheets + token + revisão) |
 | `shared/faturas-base.js` | **gerado**: lista canônica (91 itens). Não edite à mão |
 | `scripts/drift.mjs` | compara dono × cópia, gera a lista canônica |
 | `js/store.js` | única ponte com `localStorage` (leitura dos outros apps + `nexo_*`) |
@@ -143,6 +150,16 @@ O Node do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe` (só quando n
     usuário. Mantenha `VERSAO_AJUSTES` e o teste de versão futura se mudar o formato.
 25. **`NEXO_RAIZ` permite testar um conserto numa cópia** (`$env:NEXO_RAIZ='.tmp/patch'`).
     Use isso para provar uma mudança em app antes de tocar no original.
+26. **Nuvem: só as regras viajam.** Privacidade é preferência de cada aparelho e **não** é
+    aplicada a partir da nuvem. O token fica em `nexo_sync_token` (local) e **nunca** entra
+    no backup JSON nem no payload da planilha além do POST autenticado.
+27. **Sync é JSONP para ler e POST `no-cors` para gravar** — o Apps Script não manda CORS.
+    A confirmação da escrita é sempre uma leitura seguinte (`sincronizar`), nunca a
+    resposta do POST. Conflito é por revisão: se `baseRevisao` não bate, o servidor
+    devolve `conflict` e o cliente mescla por `em` (regra mais recente vence).
+    Não troque a mescla por "nuvem sobrescreve": isso apaga escolha feita no celular.
+28. **`em` é obrigatório no merge.** `normalizarRegras()` precisa preservar `em`; sem ele a
+    mescla não distingue a versão nova da velha (bug real, coberto por teste).
 
 ## Vizinhança
 

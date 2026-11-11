@@ -7,6 +7,7 @@
 import { lerTudo, lerContexto, lerPreferencia, salvarPreferencia, definirDono, limparRegras, lerBruto, lerRegras, aplicarAjustes } from './store.js';
 import { DONO_LABEL, proximoDono, conciliar, contarAlertas, buildSnapshot, alertas } from './core.js';
 import { serializarAjustes, lerAjustes, nomeArquivo } from './ajustes.js';
+import { normalizarUrl, urlValida, sincronizar } from './sync.js';
 import { construirIndice, buscar, agrupar, resumo } from './search.js';
 import { APPS, urlDoApp, VERSION } from './config.js';
 
@@ -792,6 +793,46 @@ function iniciar() {
 
   const privacidade = lerPreferencia('privacidade', false);
   if (privacidade) aplicarPrivacidade(true);
+
+  /* Nuvem: URL + token ficam neste aparelho e nunca entram no backup */
+  const syncUrl = $('#sync-url');
+  const syncToken = $('#sync-token');
+  const syncNota = (msg) => {
+    const el = $('#sync-nota');
+    if (el) el.textContent = msg;
+  };
+  if (syncUrl) syncUrl.value = lerPreferencia('sync_url', '');
+  if (syncToken) syncToken.value = lerPreferencia('sync_token', '');
+
+  $('#sync-btn')?.addEventListener('click', async () => {
+    const url = normalizarUrl(syncUrl ? syncUrl.value : '');
+    const token = syncToken ? syncToken.value.trim() : '';
+
+    if (!urlValida(url)) {
+      syncNota('URL inválida. Cole a URL /exec da implantação do Apps Script.');
+      return;
+    }
+    if (!token) {
+      syncNota('Informe o token configurado nas Propriedades do script.');
+      return;
+    }
+
+    salvarPreferencia('sync_url', url);
+    salvarPreferencia('sync_token', token);
+    syncNota('Sincronizando…');
+
+    try {
+      const r = await sincronizar({ url, token, regras: lerRegras() });
+      aplicarAjustes({ regras: r.regras });
+      render();
+      syncNota(
+        `Sincronizado · ${r.regras.length} ${r.regras.length === 1 ? 'regra' : 'regras'} · revisão ${r.revisao}` +
+          (r.enviado ? ' · enviado' : ' · nada a enviar')
+      );
+    } catch (erro) {
+      syncNota(erro && erro.message ? erro.message : 'Não consegui sincronizar.');
+    }
+  });
 
   /* Ajustes: exportar, importar e reverter (o bloco é recriado a cada render) */
   $('#ajustes').addEventListener('click', (ev) => {

@@ -31,7 +31,11 @@ export function normalizarRegras(regras) {
   (Array.isArray(regras) ? regras : []).forEach((r) => {
     if (!regraValida(r)) return;
     const chave = `${r.tipo}::${normalizarTexto(r.chave).toLowerCase()}`;
-    mapa.set(chave, { tipo: r.tipo, chave: normalizarTexto(r.chave), dono: r.dono });
+    const regra = { tipo: r.tipo, chave: normalizarTexto(r.chave), dono: r.dono };
+    // `em` é a marca de quando a escolha foi feita: sem ela a mescla entre
+    // aparelhos não tem como decidir qual versão é a mais nova.
+    if (typeof r.em === 'string' && r.em.trim()) regra.em = r.em.trim();
+    mapa.set(chave, regra);
   });
   return [...mapa.values()];
 }
