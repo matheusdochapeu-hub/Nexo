@@ -16,7 +16,7 @@ por nome guardada em `nexo_regras` e troca por toque.
 em nenhum app ainda.
 **Fase 3.2** concluída: o Matrix consome `matrix/js/faturas-data.js`, **gerado** da lista do
 Faturas + metadados dele. O array embutido virou fallback. `npm run drift` compara com o
-artefato e diz "Em dia" (91 × 91). Nada de cópia à mão.
+artefato e diz "Em dia". Nada de cópia à mão.
 **Fase 3.3** entregue: exportar/importar ajustes em JSON (`js/ajustes.js`).
 **Fase 3.5** concluída: **nenhum app mantém a lista de faturas à mão**. O gerador escreve
 `matrix/js/faturas-data.js` **e** `parcelado-a-vista/js/faturas-data.js` (ambos 90 itens);
@@ -44,7 +44,7 @@ python -m http.server 8000
 ## Testes
 
 ```powershell
-node --test test/*.test.js    # 129 testes
+node --test test/*.test.js    # 131 testes
 npm run drift                 # diferenças dono × cópia, separando ajuste de bug
 ```
 
