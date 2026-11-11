@@ -12,6 +12,7 @@
  */
 
 import { safeParse, buildSnapshot, arr, normalizarNomeConta } from './core.js';
+import { CHAVE_CACHE as CHAVE_ATEND_CACHE } from './atendimentos.js';
 
 export const CHAVES = {
   matrix: 'MATRIX_FINANCE_STATE_v2',
@@ -38,14 +39,18 @@ export function lerMaracaju() {
 }
 
 export function lerAtendimentos() {
-  const dados = safeParse(ler(CHAVES.atendimentos));
-  return arr(dados);
+  const local = arr(safeParse(ler(CHAVES.atendimentos)));
+  if (local.length) return local;
+  const cache = lerPreferencia(CHAVE_ATEND_CACHE, null);
+  return cache && Array.isArray(cache.entradas) ? cache.entradas : [];
 }
 
 /** Agenda da Scarlet: `ft_local_schedules` (array com data/hora/status). */
 export function lerAgenda() {
-  const dados = safeParse(ler(CHAVES.agenda));
-  return arr(dados);
+  const local = arr(safeParse(ler(CHAVES.agenda)));
+  if (local.length) return local;
+  const cache = lerPreferencia(CHAVE_ATEND_CACHE, null);
+  return cache && Array.isArray(cache.agenda) ? cache.agenda : [];
 }
 
 /** Ajustes que o app Faturas grava (overrides de item, extras, simulações, perfil). */

@@ -15,7 +15,9 @@ globalThis.localStorage = {
   clear: () => memoria.clear()
 };
 
-const { definirDono, limparRegras, lerRegras, lerTudo } = await import('../js/store.js');
+const { definirDono, limparRegras, lerRegras, lerTudo, lerAtendimentos, lerAgenda } = await import(
+  '../js/store.js'
+);
 
 const AGORA = new Date('2026-11-11T12:00:00-03:00');
 
@@ -111,4 +113,39 @@ test('preferência de privacidade não colide com as regras', () => {
   memoria.set('nexo_privacidade', 'true');
   assert.equal(lerRegras().length, 1);
   assert.equal(memoria.get('nexo_privacidade'), 'true');
+});
+
+
+test('atendimentos: sem dado local, usa o retrato da nuvem', () => {
+  memoria.clear();
+  memoria.delete('ft_local_entries');
+  memoria.set(
+    'nexo_atend_cache',
+    JSON.stringify({
+      entradas: [{ id: 'x1', data: '2026-11-05', valor: 350, status: 'Pago', pago: true }],
+      agenda: [{ id: 'y1', data: '2026-11-20', hora: '09:00', status: 'Agendado' }],
+      atualizadoEm: '2026-11-11T12:00:00.000Z'
+    })
+  );
+
+  const entradas = lerAtendimentos();
+  assert.equal(entradas.length, 1);
+  assert.equal(entradas[0].valor, 350);
+  assert.equal(lerAgenda().length, 1);
+});
+
+test('atendimentos: o dado local ganha da nuvem', () => {
+  memoria.clear();
+  memoria.set(
+    'ft_local_entries',
+    JSON.stringify([{ id: 'local', data: '2026-11-07', valor: 999, status: 'Pago' }])
+  );
+  memoria.set(
+    'nexo_atend_cache',
+    JSON.stringify({ entradas: [{ id: 'nuvem', data: '2026-11-05', valor: 350 }], agenda: [] })
+  );
+
+  const entradas = lerAtendimentos();
+  assert.equal(entradas.length, 1);
+  assert.equal(entradas[0].id, 'local');
 });

@@ -9,6 +9,7 @@ import { DONO_LABEL, proximoDono, conciliar, contarAlertas, buildSnapshot, alert
 import { serializarAjustes, lerAjustes, nomeArquivo } from './ajustes.js';
 import { normalizarUrl, urlValida, sincronizar } from './sync.js';
 import { deveMostrarBotao, emModoApp, CHAVE_INSTALADO } from './instalar.js';
+import { URL_ATENDIMENTOS, normalizar, precisaBuscar, CHAVE_CACHE } from './atendimentos.js';
 import { construirIndice, buscar, agrupar, resumo } from './search.js';
 import { APPS, urlDoApp, VERSION } from './config.js';
 
@@ -643,6 +644,74 @@ function aplicarPrivacidade(ativo) {
   botao.title = valor ? 'Mostrar valores' : 'Esconder valores';
 }
 
+/* ------------------------------------------- atendimentos (nuvem) */
+let buscandoAtend = false;
+
+/** JSONP: o Apps Script dela não manda CORS. Resolve `null` em qualquer falha. */
+function jsonp(url, timeoutMs = 12000) {
+  return new Promise((resolve) => {
+    const nome = '__nexo_cb_' + Math.random().toString(36).slice(2);
+    const script = document.createElement('script');
+    let terminou = false;
+
+    const limpar = () => {
+      try {
+        delete window[nome];
+      } catch {
+        window[nome] = undefined;
+      }
+      script.remove();
+      clearTimeout(relogio);
+    };
+
+    window[nome] = (dados) => {
+      terminou = true;
+      limpar();
+      resolve(dados);
+    };
+
+    const relogio = setTimeout(() => {
+      if (terminou) return;
+      terminou = true;
+      limpar();
+      resolve(null);
+    }, timeoutMs);
+
+    script.onerror = () => {
+      if (terminou) return;
+      terminou = true;
+      limpar();
+      resolve(null);
+    };
+
+    script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + nome;
+    document.head.appendChild(script);
+  });
+}
+
+/**
+ * Busca os atendimentos na nuvem quando este aparelho não tem os dados locais
+ * (ou quando o retrato guardado ficou velho). Falha em silêncio: sem rede, a
+ * tela continua com o que existe.
+ */
+async function atualizarAtendimentos() {
+  if (buscandoAtend) return;
+  const cache = lerPreferencia(CHAVE_CACHE, null);
+  if (!precisaBuscar({ cacheEm: cache && cache.atualizadoEm })) return;
+
+  buscandoAtend = true;
+  try {
+    const dados = await jsonp(URL_ATENDIMENTOS);
+    if (!dados) return;
+    const retrato = normalizar(dados, new Date());
+    if (!retrato.entradas.length && !retrato.agenda.length) return;
+    salvarPreferencia(CHAVE_CACHE, retrato);
+    render();
+  } finally {
+    buscandoAtend = false;
+  }
+}
+
 /* ---------------------------------------------------------- instalar app */
 let promptInstalacao = null;
 
@@ -698,6 +767,7 @@ function render() {
 
   $('#view').innerHTML = corpo;
   $('#launcher').innerHTML = launcher(snapshot);
+  atualizarAtendimentos();
   renderAjustes();
 
   const aviso = snapshot.avisos[0];

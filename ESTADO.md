@@ -36,6 +36,17 @@ como um só (pago pela Scarlet).
 5. **Sem bot de busca** e **sem escrita em chave de outro app** (`nexo_*` apenas).
 6. **Um app só é editado com pedido explícito do dono.**
 
+## Atendimentos da Scarlet
+
+O Nexo lia só `ft_local_entries` (só existe no navegador onde o app dela foi aberto) — em
+outro aparelho a área ficava vazia. Agora, quando o dado local falta ou o retrato guardado
+tem mais de 6 h, ele busca no **Apps Script dela por JSONP** e guarda em `nexo_atend_cache`.
+
+- `js/atendimentos.js` — mapeia `{atendimentos, agendamentos}` para o formato do core.
+- Precedência: **local > cache da nuvem > vazio**. O dado do aparelho nunca é sobrescrito.
+- Só leitura: o Nexo não escreve na planilha dela.
+- Verificado contra a resposta real (121 lançamentos e 85 agendamentos, mapeados 121/121).
+
 ## A nuvem
 
 `apps_script.gs` está **testado** por `nexo/test/nuvem.test.js` (9 casos, Sheets simulado):
@@ -69,7 +80,7 @@ Node do workspace: `..\node-bin\PFiles64\nodejs\node.exe`.
 
 | Item | Situação |
 |---|---|
-| **Implantar o Apps Script** | único passo que falta para a nuvem existir. Enquanto não publicar a `/exec`, o botão fica desligado. |
+| **Implantar o Apps Script do Nexo** | único passo que falta para a sincronização de ajustes. Os atendimentos da Scarlet **já vêm da nuvem** (endpoint dela, que está no ar). |
 | **iPhone** | decisão do dono: fica sem botão de baixar (Safari não tem o prompt). |
 | **Só as prévias foram mascaradas** | `docs/preview-*.jpg` e o diagnóstico agora vêm com privacidade ligada. **Os dados gerados (`shared/`, `faturas-data.js`) continuam com valores reais**, porque espelham apps que já são públicos — esconder aqui não esconderia nada. |
 | **Ícones do Atendimentos** | três PNGs modificados no working tree daquele repo desde 10/11 16:43, antes desta sessão. Não são do Nexo. |
