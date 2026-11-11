@@ -14,9 +14,9 @@ por nome guardada em `nexo_regras` e troca por toque.
 **Fase 2.4** entregue: "Hoje" (alertas com data real). Fase 2 fechada.
 **Fase 3.1** entregue: tema compartilhado (`theme/`) — pacote opt-in, **não aplicado**
 em nenhum app ainda.
-**Fase 3.2** validada: lista canônica (`shared/`) + drift. A divergência de 90×91 é
-**ajuste do dono** (`-1` = item apagado no Faturas), não bug. Nexo consome a lista canônica;
-aposentar a cópia do Matrix virou dívida arquitetural, não urgência.
+**Fase 3.2** concluída: o Matrix consome `matrix/js/faturas-data.js`, **gerado** da lista do
+Faturas + metadados dele. O array embutido virou fallback. `npm run drift` compara com o
+artefato e diz "Em dia" (91 × 91). Nada de cópia à mão.
 **Fase 3.3** entregue: exportar/importar ajustes em JSON (`js/ajustes.js`).
 **Fase 3.4** entregue: publicado no GitHub Pages e sincronização opcional por Apps Script
 (`apps_script.gs` + `js/sync.js`).

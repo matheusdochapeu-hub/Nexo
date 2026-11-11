@@ -163,7 +163,12 @@ Quando aparece algo **sem** explicação, ele acusa "divergência real" — e a�
 consertar. A investigação completa está em [docs/diagnostico-faturas.md](docs/diagnostico-faturas.md).
 
 `nexo/shared/faturas-base.json` (e o espelho `.js`) é a **lista canônica**, gerada do
-dono por `npm run drift:gerar`. O Nexo já a consome:
+dono por `npm run drift:gerar`. O mesmo comando escreve `matrix/js/faturas-data.js`, que o
+Matrix carrega: a partir daí **a cópia à mão deixou de existir** — o array embutido no
+conector ficou só como fallback. `npm run drift` compara com o artefato e responde
+"Em dia" (91 × 91).
+
+O Nexo também consume a lista canônica:
 
 | Situação do aparelho | Fonte usada |
 |---|---|

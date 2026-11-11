@@ -85,21 +85,27 @@ export function blocoObjeto(texto, nome) {
 }
 
 const ITEM_RE =
-  /\{\s*d\s*:\s*(['"])((?:[^\\]|\\.)*?)\1\s*,\s*v\s*:\s*(-?[\d.]+)\s*,\s*de\s*:\s*(\d+)\s*,\s*ate\s*:\s*(\d+)/g;
+  /\{\s*d\s*:\s*(['"])((?:[^\\]|\\.)*?)\1\s*,\s*v\s*:\s*(-?[\d.]+)\s*,\s*de\s*:\s*(\d+)\s*,\s*ate\s*:\s*(\d+)([^}]*)\}/g;
 
-/** Converte o literal em itens normalizados. */
+/** Converte o literal em itens normalizados (tag/cat só quando existem). */
 export function lerItens(literal) {
   if (!literal) return [];
   const itens = [];
   let m;
   ITEM_RE.lastIndex = 0;
   while ((m = ITEM_RE.exec(literal))) {
-    itens.push({
+    const resto = m[6] || '';
+    const item = {
       nome: m[2].replace(/\\'/g, "'").trim(),
       valor: Number(m[3]),
       de: Number(m[4]),
       ate: Number(m[5])
-    });
+    };
+    const tag = /\btag\s*:\s*(['"])([^'"]*)\1/.exec(resto);
+    const cat = /\bcat\s*:\s*(['"])([^'"]*)\1/.exec(resto);
+    if (tag) item.tag = tag[2];
+    if (cat) item.cat = cat[2];
+    itens.push(item);
   }
   return itens;
 }
@@ -136,7 +142,33 @@ export function relatorio(opcoes = {}) {
   const jsMatrix = lerArquivo(ARQUIVOS.matrix);
 
   const faturas = lerItens(blocoArray(htmlFaturas, 'BASE_ITEMS'));
-  const matrix = lerItens(blocoArray(jsMatrix, 'BASE_ITEMS'));
+
+  // Depois da migração, o Matrix consome js/faturas-data.js (gerado). Se ele
+  // existir, é ele a lista efetiva; o array embutido virou só fallback.
+  let matrix = null;
+  let fonteMatrix = 'inline';
+  try {
+    const dados = lerArquivo(resolve(RAIZ, 'matrix', 'js', 'faturas-data.js'));
+    const i = dados.indexOf('{');
+    const j = dados.lastIndexOf('}');
+    if (i >= 0 && j > i) {
+      const obj = JSON.parse(dados.slice(i, j + 1));
+      if (obj && Array.isArray(obj.base)) {
+        matrix = obj.base.map((it) => ({
+          nome: it.d,
+          valor: Number(it.v),
+          de: Number(it.de),
+          ate: Number(it.ate),
+          tag: it.tag || undefined
+        }));
+        fonteMatrix = 'gerada';
+      }
+    }
+  } catch {
+    /* sem arquivo gerado: compara com o array embutido */
+  }
+  if (!matrix) matrix = lerItens(blocoArray(jsMatrix, 'BASE_ITEMS'));
+
   const diff = comparar(faturas, matrix);
 
   // O Matrix tem um "baseline" com overrides próprios. Se o item que falta está
@@ -170,7 +202,8 @@ export function relatorio(opcoes = {}) {
   return {
     geradoEm: new Date().toISOString(),
     origem: 'parcelado-a-vista/index.html → BASE_ITEMS',
-    copia: 'matrix/js/satellite-connectors.js → BASE_ITEMS',
+    copia: fonteMatrix === 'gerada' ? 'matrix/js/faturas-data.js (gerado)' : 'matrix/js/satellite-connectors.js → BASE_ITEMS',
+    fonteMatrix,
     totais: { faturas: faturas.length, matrix: matrix.length },
     emDia,
     divergenciaReal,
@@ -212,6 +245,21 @@ export function salvarBase(lista, destino = ARQUIVOS.base) {
   return { json: destino, js };
 }
 
+/**
+ * Dados para o Matrix (script clássico, sem módulos): lista canônica + os
+ * metadados `tag`/`cat` que só existem lá. Assim o Matrix para de manter a
+ * cópia à mão e passa a consumir um artefato gerado e verificado pelo drift.
+ */
+export function salvarDadosMatrix(base, meta, destino) {
+  mkdirSync(dirname(destino), { recursive: true });
+  const conteudo =
+    '/* GERADO por nexo/scripts/drift.mjs — não edite à mão.\n' +
+    '   Lista canônica (dona: app Faturas) + metadados cat/tag do Matrix. */\n' +
+    `window.NEXO_FATURAS = ${JSON.stringify({ base, meta }, null, 2)};\n`;
+  writeFileSync(destino, conteudo, 'utf8');
+  return destino;
+}
+
 /* ------------------------------------------------------------------ CLI */
 const executandoDireto = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
@@ -222,7 +270,19 @@ if (executandoDireto) {
 
   if (gerar) {
     const destino = salvarBase(r.faturas);
-    if (!soJson) console.log(`✔ lista canônica gravada em ${destino.json} e ${destino.js} (${r.faturas.length} itens)`);
+    // Metadados que só o Matrix tem (categoria curada e tag de exibição)
+    const meta = {};
+    r.matrix.forEach((it) => {
+      if (!it.cat && !it.tag) return;
+      meta[`${it.nome}__${it.de}`] = { tag: it.tag || null, cat: it.cat || null };
+    });
+    const base = r.faturas.map((it) => ({ d: it.nome, v: it.valor, de: it.de, ate: it.ate, tag: it.tag || null }));
+    const dadosMatrix = salvarDadosMatrix(base, meta, resolve(RAIZ, 'matrix', 'js', 'faturas-data.js'));
+
+    if (!soJson) {
+      console.log(`✔ lista canônica em ${destino.json} e ${destino.js} (${r.faturas.length} itens)`);
+      console.log(`✔ dados do Matrix em ${dadosMatrix} (${base.length} itens, ${Object.keys(meta).length} metadados)`);
+    }
   }
 
   if (soJson) {

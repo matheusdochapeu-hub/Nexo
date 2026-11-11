@@ -30,15 +30,22 @@ test('blocoObjeto devolve null em objeto que não é JSON', () => {
   assert.equal(blocoObjeto("const CFG = { overrides: { 'X__0': -1 } };", 'CFG'), null);
 });
 
-test('lerItens entende os dois formatos (com e sem espaço)', () => {
+test('lerItens entende os dois formatos e preserva tag/cat', () => {
   const literal = `[
     {d:'Tennis One 4/5', v:79.99, de:1,ate:1, tag:'parc'},
     { d: 'Casa Almeida 5/5', v: 101.88, de: 1, ate: 1, tag: 'parc', cat: 'Casa' }
   ]`;
   const itens = lerItens(literal);
   assert.equal(itens.length, 2);
-  assert.deepEqual(itens[0], { nome: 'Tennis One 4/5', valor: 79.99, de: 1, ate: 1 });
-  assert.deepEqual(itens[1], { nome: 'Casa Almeida 5/5', valor: 101.88, de: 1, ate: 1 });
+  assert.deepEqual(itens[0], { nome: 'Tennis One 4/5', valor: 79.99, de: 1, ate: 1, tag: 'parc' });
+  assert.deepEqual(itens[1], {
+    nome: 'Casa Almeida 5/5',
+    valor: 101.88,
+    de: 1,
+    ate: 1,
+    tag: 'parc',
+    cat: 'Casa'
+  });
 });
 
 test('lerItens lida com literal vazio', () => {
