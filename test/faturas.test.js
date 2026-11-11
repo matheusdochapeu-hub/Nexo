@@ -80,10 +80,14 @@ test('índice inválido devolve lista vazia', () => {
   assert.deepEqual(itensDoMes(undefined, { base: BASE }), []);
 });
 
-test('a lista canônica gerada tem os 91 itens do Faturas', async () => {
+test('a lista canônica exclui o que o dono apagou', async () => {
   const { BASE_FATURAS } = await import('../shared/faturas-base.js');
-  assert.equal(BASE_FATURAS.length, 91);
-  assert.ok(BASE_FATURAS.some((it) => it.d === 'Cobertura 5/10'), 'deve conter o item que faltava no Matrix');
+  // 91 itens no app Faturas, menos o "Cobertura 5/10" que o dono apagou em todos os meses
+  assert.equal(BASE_FATURAS.length, 90);
+  assert.ok(
+    !BASE_FATURAS.some((it) => it.d === 'Cobertura 5/10'),
+    'item excluído pelo dono não pode voltar pela lista canônica'
+  );
   const cotton = BASE_FATURAS.find((it) => it.d === 'Cotton On 2/3');
   assert.equal(cotton.v, 69.97, 'valor do dono, não o 69,95 da cópia');
 });

@@ -90,6 +90,9 @@ const BASELINE_FATURAS_RAW = {"overrides": {"B__4": -1, "A__1": 10}};`;
   assert.equal(r.valorDiferente[0].overrideDoMatrix, 10);
   assert.equal(r.divergenciaReal, 0);
   assert.equal(r.explicadoPeloBaseline, true);
+  // B foi apagado em todos os meses → sai da lista canônica
+  assert.deepEqual(r.excluidos.map((i) => i.nome), ['B']);
+  assert.deepEqual(r.faturasPublicaveis.map((i) => i.nome), ['A']);
 });
 
 test('divergência sem explicação no baseline não é marcada como intencional', () => {

@@ -69,7 +69,6 @@ export const BASE_FATURAS = [
   { d: "Studio Rocha 1/6 (nova)", v: 350, de: 4, ate: 4 },
   { d: "Globoplay 11/12", v: 22.9, de: 4, ate: 4 },
   { d: "Petlove Clube 1/12 (nova)", v: 9.99, de: 4, ate: 4 },
-  { d: "Cobertura 5/10", v: 1246, de: 4, ate: 4 },
   { d: "Tennis One 4/10", v: 156.99, de: 4, ate: 4 },
   { d: "Tennis One 5/10", v: 156.99, de: 5, ate: 5 },
   { d: "Tennis One 6/10", v: 156.99, de: 6, ate: 6 },

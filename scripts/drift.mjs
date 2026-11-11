@@ -176,12 +176,30 @@ export function relatorio(opcoes = {}) {
   const baseline = blocoObjeto(jsMatrix, 'BASELINE_FATURAS_RAW');
   const overridesBase = (baseline && baseline.overrides) || {};
 
+  // Item que o dono apagou em TODOS os meses da sua janela (override -1) sai da
+  // lista canônica: assim todo consumidor o esconde, mesmo sem os ajustes locais.
+  const mesesDaJanela = (it) => {
+    const meses = [];
+    for (let m = it.de; m <= it.ate; m++) meses.push(m);
+    return meses;
+  };
+  const excluidos = faturas.filter((it) =>
+    mesesDaJanela(it).every((m) => Number(overridesBase[`${it.nome}__${m}`]) === -1)
+  );
+  const chaveItem = (it) => `${it.nome}|${it.de}|${it.ate}`;
+  const setExcluidos = new Set(excluidos.map(chaveItem));
+
   const faltandoNoMatrix = diff.faltandoNoMatrix.map((it) => {
     const mesesApagados = [];
     for (let m = it.de; m <= it.ate; m++) {
       if (Number(overridesBase[`${it.nome}__${m}`]) === -1) mesesApagados.push(m);
     }
-    return { ...it, apagadoNoBaseline: mesesApagados.length > 0, mesesApagados };
+    return {
+      ...it,
+      apagadoNoBaseline: mesesApagados.length > 0,
+      mesesApagados,
+      excluido: setExcluidos.has(chaveItem(it))
+    };
   });
 
   const valorDiferente = diff.valorDiferente.map((it) => {
@@ -195,9 +213,13 @@ export function relatorio(opcoes = {}) {
   // O baseline do Matrix é um retrato do pv4_* do app Faturas: -1 é exclusão
   // feita à mão e valor é edição feita à mão. Isso não é bug, é decisão.
   const divergenciaReal =
-    faltandoNoMatrix.filter((it) => !it.apagadoNoBaseline).length +
+    faltandoNoMatrix.filter((it) => !it.apagadoNoBaseline && !it.excluido).length +
     diff.sobrandoNoMatrix.length +
     valorDiferente.filter((it) => it.overrideDoMatrix === null).length;
+
+  // Lista canônica = lista do dono menos o que ele apagou em todos os meses.
+  const chavesExcluidas = new Set(excluidos.map(chaveItem));
+  const faturasPublicaveis = faturas.filter((it) => !chavesExcluidas.has(chaveItem(it)));
 
   return {
     geradoEm: new Date().toISOString(),
@@ -208,6 +230,8 @@ export function relatorio(opcoes = {}) {
     emDia,
     divergenciaReal,
     explicadoPeloBaseline: !emDia && divergenciaReal === 0,
+    excluidos,
+    faturasPublicaveis,
     faltandoNoMatrix,
     sobrandoNoMatrix: diff.sobrandoNoMatrix,
     valorDiferente,
@@ -269,19 +293,23 @@ if (executandoDireto) {
   const gerar = process.argv.includes('--gerar');
 
   if (gerar) {
-    const destino = salvarBase(r.faturas);
+    const publicaveis = r.faturasPublicaveis;
+    const destino = salvarBase(publicaveis);
     // Metadados que só o Matrix tem (categoria curada e tag de exibição)
     const meta = {};
     r.matrix.forEach((it) => {
       if (!it.cat && !it.tag) return;
       meta[`${it.nome}__${it.de}`] = { tag: it.tag || null, cat: it.cat || null };
     });
-    const base = r.faturas.map((it) => ({ d: it.nome, v: it.valor, de: it.de, ate: it.ate, tag: it.tag || null }));
+    const base = publicaveis.map((it) => ({ d: it.nome, v: it.valor, de: it.de, ate: it.ate, tag: it.tag || null }));
     const dadosMatrix = salvarDadosMatrix(base, meta, resolve(RAIZ, 'matrix', 'js', 'faturas-data.js'));
 
     if (!soJson) {
-      console.log(`✔ lista canônica em ${destino.json} e ${destino.js} (${r.faturas.length} itens)`);
+      console.log(`✔ lista canônica em ${destino.json} e ${destino.js} (${publicaveis.length} itens)`);
       console.log(`✔ dados do Matrix em ${dadosMatrix} (${base.length} itens, ${Object.keys(meta).length} metadados)`);
+      if (r.excluidos.length) {
+        console.log(`✔ ${r.excluidos.length} item(ns) excluído(s) a pedido do dono: ${r.excluidos.map((i) => i.nome).join(', ')}`);
+      }
     }
   }
 
