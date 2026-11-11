@@ -295,11 +295,15 @@ if (executandoDireto) {
   if (gerar) {
     const publicaveis = r.faturasPublicaveis;
     const destino = salvarBase(publicaveis);
-    // Metadados que só o Matrix tem (categoria curada e tag de exibição)
+    // Metadados que só o Matrix tem (categoria curada e tag de exibição).
+    // Só entram os de itens que sobreviveram à exclusão do dono.
+    const chaves = new Set(publicaveis.map((it) => `${it.nome}__${it.de}`));
     const meta = {};
     r.matrix.forEach((it) => {
       if (!it.cat && !it.tag) return;
-      meta[`${it.nome}__${it.de}`] = { tag: it.tag || null, cat: it.cat || null };
+      const chave = `${it.nome}__${it.de}`;
+      if (!chaves.has(chave)) return;
+      meta[chave] = { tag: it.tag || null, cat: it.cat || null };
     });
     const base = publicaveis.map((it) => ({ d: it.nome, v: it.valor, de: it.de, ate: it.ate, tag: it.tag || null }));
     const dadosMatrix = salvarDadosMatrix(base, meta, resolve(RAIZ, 'matrix', 'js', 'faturas-data.js'));

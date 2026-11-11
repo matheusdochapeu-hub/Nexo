@@ -63,7 +63,7 @@ O Node do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe` (só quando n
 | `js/ajustes.js` | **puro**: serializa/valida o backup de regras e privacidade |
 | `js/sync.js` | **puro no núcleo**: URL, mescla e conflito; rede por JSONP/POST |
 | `apps_script.gs` | backend opcional dos ajustes (Sheets + token + revisão) |
-| `shared/faturas-base.js` | **gerado**: lista canônica (91 itens). Não edite à mão |
+| `shared/faturas-base.js` | **gerado**: lista canônica (90 itens, já sem o excluído). Não edite à mão |
 | `scripts/drift.mjs` | compara dono × cópia, gera a lista canônica |
 | `js/store.js` | única ponte com `localStorage` (leitura dos outros apps + `nexo_*`) |
 | `js/app.js` | render das três áreas, abas, privacidade, atalhos |
@@ -137,6 +137,9 @@ O Node do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe` (só quando n
 21. **Faturas: a lista canônica manda.** `shared/faturas-base.js` é **gerado** por
     `npm run drift:gerar` a partir do `index.html` do Faturas. Nunca edite o arquivo à mão;
     edite o dono e regenere. A âncora é **Set/2026 = índice 0** (igual ao app e ao Matrix).
+    **Item apagado em todos os meses da janela (`-1` no baseline) sai da lista canônica** —
+    decisão do dono em 11/11/2026 sobre o "Cobertura 5/10". Não "restaure" esse item: se
+    voltar, ele reaparece no Matrix e no Nexo sem ninguém pedir.
 22. **Precedência dos cartões:** ajustes locais (`pv4_over`/`pv4_extra`) → lista canônica;
     sem ajustes → satélite do Matrix; sem nada → `null`. Não inverta: o satélite carrega a
     cópia de 90 itens, que já divergiu (1 item e R$ 0,02).
