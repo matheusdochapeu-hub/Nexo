@@ -218,15 +218,27 @@ a {
   color: var(--nx-bg);
 }
 
-/* ------------------------------------------------------------------ abas */
-.nx-tabs {
+/* ----------------------------------------------------------- topo fixo */
+.nx-topo {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 25;
+  background: var(--nx-bg);
+  padding-top: 4px;
+  padding-bottom: 2px;
+  margin-bottom: 14px;
+  box-shadow: 0 10px 18px -18px rgba(25, 24, 23, 0.55);
+}
+
+/* Sinaliza que o dock rola: desligado — no celular a grade mostra os 4. */
+
+/* ------------------------------------------------------------------ abas */
+.nx-tabs {
+  position: static;
   display: flex;
   gap: 4px;
   padding: 4px;
-  margin: 4px 0 18px;
+  margin: 0 0 6px;
   background: var(--nx-surface);
   border: 1px solid var(--nx-line);
   border-radius: var(--nx-r-pill);
@@ -680,87 +692,63 @@ body[data-privado="1"] .nx-money {
   justify-content: center;
 }
 
-/* -------------------------------------------------------------- lançador */
-.nx-launcher {
-  margin-top: 22px;
-}
-
-.nx-launcher-titulo {
-  font-size: 12px;
-  font-weight: 650;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--nx-muted);
-  margin: 0 2px 10px;
-}
-
-.nx-launcher-grid {
+/* --------------------------------------------------------------- dock fixo */
+.nx-dock {
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 4px 0 8px;
 }
 
-.nx-app-card {
-  display: flex;
-  gap: 11px;
+@media (max-width: 560px) {
+  .nx-dock {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.nx-dock-item {
+  flex: 0 0 auto;
+  display: inline-flex;
   align-items: center;
-  padding: 12px 13px;
+  gap: 7px;
+  min-width: 0;
+  min-height: 40px;
+  padding: 6px 10px 6px 6px;
   background: var(--nx-surface);
   border: 1px solid var(--nx-line);
-  border-radius: var(--nx-r);
+  border-radius: var(--nx-r-pill);
   text-decoration: none;
-  min-width: 0;
+  color: var(--nx-ink);
   box-shadow: var(--nx-shadow-sm);
-  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.nx-app-card:hover {
-  border-color: var(--nx-line-strong);
+.nx-dock-item:hover {
   background: var(--nx-surface-2);
+  border-color: var(--nx-line-strong);
 }
 
-.nx-app-card:active {
-  transform: scale(0.985);
+.nx-dock-item:active {
+  transform: scale(0.98);
 }
 
-.nx-app-icone {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+.nx-dock-icone {
+  width: 26px;
+  height: 26px;
   flex: 0 0 auto;
+  border-radius: 8px;
   display: grid;
   place-items: center;
-  font-weight: 700;
-  font-size: 15px;
   color: #fff;
-}
-
-.nx-app-txt {
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.nx-app-nome {
-  font-size: 14.5px;
-  font-weight: 620;
-  letter-spacing: -0.01em;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.nx-app-papel {
   font-size: 12px;
-  color: var(--nx-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 700;
 }
 
-.nx-app-seta {
-  flex: 0 0 auto;
-  color: var(--nx-muted);
-  font-size: 15px;
+.nx-dock-nome {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 /* ---------------------------------------------------------------- rodapé */

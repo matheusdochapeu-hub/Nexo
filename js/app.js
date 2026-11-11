@@ -512,29 +512,20 @@ function launcher(s) {
   const status = {
     matrix: s.fontes.matrix ? ['ok', 'lido'] : ['', 'não aberto'],
     maracaju: s.casa.beneficios ? ['ok', 'lido'] : ['', 'não aberto'],
-    faturas: s.casa.cartoes.total !== null ? ['ok', 'lido'] : ['', 'não aberto'],
+    faturas: s.casa.cartoes.black !== null ? ['ok', 'lido'] : ['', 'não aberto'],
     atendimentos: s.casa.trabalho ? ['ok', 'lido'] : ['', 'não aberto']
   };
 
-  const cards = APPS.map((app) => {
+  return APPS.map((app) => {
     const [tom, texto] = status[app.id] || ['', ''];
     const inicial = app.nome.charAt(0);
-    return `<a class="nx-app-card" href="${esc(urlDoApp(app))}">
-      <span class="nx-app-icone" style="background:${esc(app.cor)}">${esc(inicial)}</span>
-      <span class="nx-app-txt">
-        <span class="nx-app-nome">${esc(app.nome)}
-          <span class="nx-dot${tom ? ` nx-dot--${tom}` : ''}" title="${esc(texto)}"></span>
-        </span>
-        <span class="nx-app-papel">${esc(app.papel)}</span>
-      </span>
-      <span class="nx-app-seta" aria-hidden="true">›</span>
+    return `<a class="nx-dock-item" href="${esc(urlDoApp(app))}" title="${esc(app.papel)} · ${esc(texto)}">
+      <span class="nx-dock-icone" style="background:${esc(app.cor)}" aria-hidden="true">${esc(inicial)}</span>
+      <span class="nx-dock-nome">${esc(app.nome)}</span>
+      <span class="nx-dot${tom ? ` nx-dot--${tom}` : ''}" aria-hidden="true"></span>
+      <span class="nx-sr">${esc(texto)}</span>
     </a>`;
-  });
-
-  return `<section class="nx-launcher">
-    <p class="nx-launcher-titulo">Abrir um app</p>
-    <div class="nx-launcher-grid">${cards.join('')}</div>
-  </section>`;
+  }).join('');
 }
 
 /* ------------------------------------------------------------------ busca */

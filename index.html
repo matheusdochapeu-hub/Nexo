@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./icons/nexo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="./icons/nexo.svg">
-<link rel="stylesheet" href="./css/nexo.css?v=0.12.0">
+<link rel="stylesheet" href="./css/nexo.css?v=0.13.0">
 </head>
 <body data-privado="0">
 
@@ -42,7 +42,10 @@
     </div>
   </header>
 
-  <nav class="nx-tabs" id="tabs" role="tablist" aria-label="Áreas do Nexo"></nav>
+  <div class="nx-topo" id="topo">
+    <div id="launcher" class="nx-dock" aria-label="Abrir um app"></div>
+    <nav class="nx-tabs" id="tabs" role="tablist" aria-label="Áreas do Nexo"></nav>
+  </div>
 
   <div class="nx-instalar" id="instalar" hidden>
     <div class="nx-instalar-txt">
@@ -55,8 +58,6 @@
   <div id="avisos" hidden></div>
 
   <main id="view" role="tabpanel" aria-live="polite"></main>
-
-  <div id="launcher"></div>
 
   <div id="ajustes" class="nx-ajustes"></div>
 
@@ -94,6 +95,6 @@
   </section>
 </div>
 
-<script type="module" src="./js/app.js?v=0.12.0"></script>
+<script type="module" src="./js/app.js?v=0.13.0"></script>
 </body>
 </html>
