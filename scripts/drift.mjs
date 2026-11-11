@@ -307,10 +307,13 @@ if (executandoDireto) {
     });
     const base = publicaveis.map((it) => ({ d: it.nome, v: it.valor, de: it.de, ate: it.ate, tag: it.tag || null }));
     const dadosMatrix = salvarDadosMatrix(base, meta, resolve(RAIZ, 'matrix', 'js', 'faturas-data.js'));
+    // A cópia à mão do Faturas também vira artefato gerado: ninguém edita lista.
+    const dadosFaturas = salvarDadosMatrix(base, meta, resolve(RAIZ, 'parcelado-a-vista', 'js', 'faturas-data.js'));
 
     if (!soJson) {
       console.log(`✔ lista canônica em ${destino.json} e ${destino.js} (${publicaveis.length} itens)`);
       console.log(`✔ dados do Matrix em ${dadosMatrix} (${base.length} itens, ${Object.keys(meta).length} metadados)`);
+      console.log(`✔ dados do Faturas em ${dadosFaturas} (${base.length} itens)`);
       if (r.excluidos.length) {
         console.log(`✔ ${r.excluidos.length} item(ns) excluído(s) a pedido do dono: ${r.excluidos.map((i) => i.nome).join(', ')}`);
       }

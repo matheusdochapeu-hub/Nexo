@@ -18,8 +18,10 @@ em nenhum app ainda.
 Faturas + metadados dele. O array embutido virou fallback. `npm run drift` compara com o
 artefato e diz "Em dia" (91 × 91). Nada de cópia à mão.
 **Fase 3.3** entregue: exportar/importar ajustes em JSON (`js/ajustes.js`).
-**Fase 3.4** entregue: publicado no GitHub Pages e sincronização opcional por Apps Script
-(`apps_script.gs` + `js/sync.js`).
+**Fase 3.5** concluída: **nenhum app mantém a lista de faturas à mão**. O gerador escreve
+`matrix/js/faturas-data.js` **e** `parcelado-a-vista/js/faturas-data.js` (ambos 90 itens);
+cada app aplica o artefato sobre o array embutido, que virou só fallback offline. A lista
+canônica em `shared/` é a fonte; os dois arquivos são projeções geradas e verificadas.
 
 Este app **não substitui** nenhum dos quatro. Eles continuam funcionando sozinhos e são a
 fonte da verdade dos seus próprios dados.
@@ -140,6 +142,8 @@ O Node do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe` (só quando n
     **Item apagado em todos os meses da janela (`-1` no baseline) sai da lista canônica** —
     decisão do dono em 11/11/2026 sobre o "Cobertura 5/10". Não "restaure" esse item: se
     voltar, ele reaparece no Matrix e no Nexo sem ninguém pedir.
+    **Os dois apps carregam `js/faturas-data.js` gerado** e aplicam sobre o array embutido
+    (fallback). Não reintroduza edição manual da lista em nenhum deles: rode o gerador.
 22. **Precedência dos cartões:** ajustes locais (`pv4_over`/`pv4_extra`) → lista canônica;
     sem ajustes → satélite do Matrix; sem nada → `null`. Não inverta: o satélite carrega a
     cópia de 90 itens, que já divergiu (1 item e R$ 0,02).
