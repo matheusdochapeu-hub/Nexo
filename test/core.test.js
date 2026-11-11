@@ -172,12 +172,13 @@ test('snapshot: caixa soma fixos, outros e diários (sem VA/VR nem já alocados)
   assert.equal(c.pendente, 1249.23);
 });
 
-test('snapshot: cartões somam Matheus e Scarlet e calculam a meta', () => {
+test('snapshot: o Black é um só cartão e é pago pela Scarlet', () => {
   const s = buildSnapshot({ matrix: estadoMatrix(), now: AGORA });
-  assert.equal(s.casa.cartoes.matheus, 4883.05);
-  assert.equal(s.casa.cartoes.scarlet, 4835.22);
-  assert.equal(s.casa.cartoes.total, 9718.27);
-  assert.equal(s.casa.cartoes.pctMeta, 324);
+  assert.equal(s.casa.cartoes.black, 4883.05);
+  assert.equal(s.casa.cartoes.matheus, null, 'o cartão não é do Matheus');
+  assert.equal(s.casa.cartoes.scarlet, 4883.05);
+  assert.equal(s.casa.cartoes.total, 4883.05, 'não pode somar satélite + nó scarlet (é a mesma fatura)');
+  assert.equal(s.casa.cartoes.pctMeta, 163);
 });
 
 test('snapshot: benefícios vêm do Matrix e calculam gasto por diferença', () => {
@@ -211,7 +212,7 @@ test('snapshot: trabalho usa o satélite do Matrix quando existe', () => {
   assert.equal(s.casa.trabalho.aReceber, 900);
   assert.equal(s.casa.trabalho.sessoes, 21);
   assert.equal(s.scarlet.ganhos, 3000);
-  assert.equal(s.scarlet.cartao, 4835.22);
+  assert.equal(s.scarlet.cartao, 4883.05, 'o cartão dela é o Black');
 });
 
 test('snapshot: trabalho cai para os lançamentos locais do Atendimentos', () => {
@@ -260,7 +261,7 @@ test('snapshot: person split mantém benefício fora das receitas do Matheus', (
   const s = buildSnapshot({ matrix: estadoMatrix(), now: AGORA });
   assert.equal(s.matheus.receitas.length, 2);
   assert.equal(s.matheus.totalReceitas, 6386.24);
-  assert.equal(s.matheus.cartao, 4883.05);
+  assert.equal(s.matheus.cartao, null, 'o Black não é do Matheus');
 });
 
 /* ------------------------------------------------- atribuição por pessoa */
@@ -368,7 +369,7 @@ test('cartões: ajustes locais do Faturas recalculam com a lista canônica', () 
     now: AGORA
   });
   assert.equal(s.casa.cartoes.fonte, 'faturas');
-  assert.equal(s.casa.cartoes.matheus, 350);
+  assert.equal(s.casa.cartoes.black, 350);
   assert.equal(s.casa.cartoes.futuras, 100, 'mês seguinte sem override nem extra');
   assert.equal(s.casa.cartoes.meta, 1000);
   assert.equal(s.casa.cartoes.velho, false);
@@ -381,13 +382,29 @@ test('cartões: sem ajustes locais, cai no satélite do Matrix', () => {
     now: AGORA
   });
   assert.equal(s.casa.cartoes.fonte, 'matrix');
-  assert.equal(s.casa.cartoes.matheus, 4883.05);
+  assert.equal(s.casa.cartoes.black, 4883.05);
 });
 
 test('cartões: sem fonte nenhuma não inventa valor', () => {
   const s = buildSnapshot({ now: AGORA });
-  assert.equal(s.casa.cartoes.matheus, null);
+  assert.equal(s.casa.cartoes.black, null);
   assert.equal(s.casa.cartoes.fonte, null);
+});
+
+test('cartões: satélite e nó scarlet NÃO são somados (é a mesma fatura)', () => {
+  const s = buildSnapshot({ matrix: estadoMatrix(), now: AGORA });
+  // o fixture tem 4883,05 no satélite e 4835,22 no nó scarlet do mês
+  assert.equal(s.casa.cartoes.total, 4883.05);
+  assert.notEqual(s.casa.cartoes.total, 9718.27, 'somar as duas fontes dobrava a fatura');
+});
+
+test('cartões: sem satélite, usa o nó scarlet do mês como fallback', () => {
+  const st = estadoMatrix();
+  delete st.satellites.faturas;
+  const s = buildSnapshot({ matrix: st, now: AGORA });
+  assert.equal(s.casa.cartoes.black, 4835.22);
+  assert.equal(s.casa.cartoes.fonte, 'scarlet');
+  assert.equal(s.casa.cartoes.matheus, null);
 });
 
 /* ------------------------------------------------------- conciliação */
@@ -407,15 +424,15 @@ test('conciliação: fatura acima da meta é risco com o excedente', () => {
   const a = conciliar(buildSnapshot({ matrix: estadoMatrix(), now: AGORA }));
   const cartoes = a.find((x) => x.id === 'cartoes');
   assert.equal(cartoes.tom, 'risco');
-  assert.equal(cartoes.valores.acima, 6718.27);
-  assert.equal(cartoes.valores.metaPct, 324);
+  assert.equal(cartoes.valores.acima, 1883.05);
+  assert.equal(cartoes.valores.metaPct, 163);
 });
 
 test('conciliação: fatura que come a sobra é risco', () => {
   const a = conciliar(buildSnapshot({ matrix: estadoMatrix(), now: AGORA }));
   const sobra = a.find((x) => x.id === 'sobra');
   assert.equal(sobra.tom, 'risco');
-  assert.equal(sobra.valores.dif, 6970.36);
+  assert.equal(sobra.valores.dif, 2135.14);
 });
 
 test('conciliação: pagamento de cartão no fluxo vira aviso e não soma de novo', () => {
@@ -458,7 +475,7 @@ test('conciliação: divisão por dono fecha 100%', () => {
 test('conciliação: percentuais usam chave terminada em Pct', () => {
   const a = conciliar(buildSnapshot({ matrix: estadoMatrix(), now: AGORA }));
   const sc = a.find((x) => x.id === 'scarlet');
-  assert.equal(Math.round(sc.valores.razaoPct), 161);
+  assert.equal(Math.round(sc.valores.razaoPct), 163);
   assert.ok(!('pct' in sc.valores), 'chave sem sufixo Pct viraria R$ na tela');
   // todo placeholder do texto existe em valores
   a.forEach((x) => {

@@ -144,9 +144,12 @@ O Node do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe` (só quando n
     voltar, ele reaparece no Matrix e no Nexo sem ninguém pedir.
     **Os dois apps carregam `js/faturas-data.js` gerado** e aplicam sobre o array embutido
     (fallback). Não reintroduza edição manual da lista em nenhum deles: rode o gerador.
-22. **Precedência dos cartões:** ajustes locais (`pv4_over`/`pv4_extra`) → lista canônica;
-    sem ajustes → satélite do Matrix; sem nada → `null`. Não inverta: o satélite carrega a
-    cópia de 90 itens, que já divergiu (1 item e R$ 0,02).
+22. **O Black é UM cartão, pago pela Scarlet.** `satellites.faturas` (app Faturas) e
+    `anos[ano][mes].scarlet.faturaNubank` são a **mesma fatura** — o próprio Matrix confirma
+    em `getFaturaNubankMes()`, que usa um como fallback do outro. Nunca some os dois
+    (dobrava R$ 4.883,05 em R$ 9.718,27) e nunca rotule o cartão como do Matheus:
+    `cartoes.matheus` é sempre `null`, `cartoes.black` é o valor único.
+    Precedência: ajustes do Faturas → satélite → nó `scarlet` do mês.
 23. **`npm run drift` separa ajuste de bug.** O `BASELINE_FATURAS_RAW` do Matrix é um
     retrato do `pv4_*` do Faturas: `-1` = item apagado à mão, valor = editado à mão.
     `divergenciaReal` conta só o que **não** tem essa explicação; se ela for 0, o veredito

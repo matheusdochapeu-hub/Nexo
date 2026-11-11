@@ -241,24 +241,29 @@ function beneficios(sat, maracaju, now) {
 }
 
 /* -------------------------------------------------------------------------
- * CARTÕES — Nubank Black do Matheus + cartão da Scarlet.
+ * CARTÕES — o Nubank Black é UM cartão só, e é a Scarlet quem paga.
  *
- * Precedência (a mesma lógica de "o dono do dado manda"):
- *   1. Ajustes locais do app Faturas (`pv4_*`) → recalcula com a LISTA CANÔNICA.
- *      Isso ignora a cópia de 90 itens que vive no Matrix e não herda o drift.
- *   2. Satélite do Matrix → usado quando este aparelho nunca abriu o Faturas.
- *   3. Nada → `null` (a tela mostra "—").
+ * Descoberta que corrigiu um erro do Nexo: o satélite do app Faturas
+ * (`satellites.faturas`) e o nó `anos[ano][mes].scarlet.faturaNubank` do Matrix
+ * são a MESMA fatura. O próprio Matrix confirma isso em `getFaturaNubankMes()`,
+ * que usa um como fallback do outro. Somar os dois dobrava o valor.
+ *
+ * Precedência do valor:
+ *   1. Ajustes locais do app Faturas (`pv4_*`) → recalcula com a lista canônica.
+ *   2. Satélite do Matrix.
+ *   3. `scarlet.faturaNubank` do mês (fallback histórico do Matrix).
+ *   4. Nada → `null` (a tela mostra "—").
  * ---------------------------------------------------------------------- */
 function cartoes(sat, month, now, local, base) {
   const f = sat && sat.faturas;
-  const scarlet = month && month.scarlet ? num(month.scarlet.faturaNubank) : null;
+  const doMes = month && month.scarlet ? num(month.scarlet.faturaNubank) : null;
 
   const temAjustes =
     !!local &&
     ((local.overrides && Object.keys(local.overrides).length > 0) ||
       (Array.isArray(local.extras) && local.extras.length > 0));
 
-  let matheus = null;
+  let black = null;
   let meta = null;
   let futuras = null;
   let atualizadoEm = null;
@@ -268,31 +273,33 @@ function cartoes(sat, month, now, local, base) {
   if (temAjustes) {
     const indice = indiceDoMes(now.getFullYear(), now.getMonth() + 1);
     const dados = { base, overrides: local.overrides, extras: local.extras, sim: local.sim };
-    matheus = totalDoMes(indice, dados);
+    black = totalDoMes(indice, dados);
     futuras = totalDoMes(indice + 1, dados);
     meta = local.profile && local.profile.meta != null ? num(local.profile.meta) : null;
     fonte = 'faturas';
     baseados = tamanhoBase(base);
   } else if (f) {
-    matheus = num(f.faturaAtualReal != null ? f.faturaAtualReal : f.faturaAtualValor);
+    black = num(f.faturaAtualReal != null ? f.faturaAtualReal : f.faturaAtualValor);
     meta = f.limiteMetaMensal != null ? num(f.limiteMetaMensal) : null;
     futuras = num(f.faturasFuturasCompromissadas);
     atualizadoEm = f.atualizadoEm || null;
     fonte = 'matrix';
+  } else if (doMes !== null) {
+    black = doMes;
+    fonte = 'scarlet';
   }
 
-  const valores = [matheus, scarlet].filter((v) => v !== null);
-  const total = valores.length ? round2(valores.reduce((a, b) => a + b, 0)) : null;
-
   return {
-    matheus,
-    scarlet,
-    total,
+    black,
+    // O cartão não é do Matheus: é pago pela Scarlet (mesmo sendo gasto do casal).
+    matheus: null,
+    scarlet: black,
+    total: black,
     meta,
-    pctMeta: meta && meta > 0 && total !== null ? Math.round((total / meta) * 100) : null,
+    pctMeta: meta && meta > 0 && black !== null ? Math.round((black / meta) * 100) : null,
     futuras,
     atualizadoEm,
-    velho: fonte === 'faturas' ? false : fonte === 'matrix' ? stale(atualizadoEm, now) : true,
+    velho: fonte === 'faturas' ? false : fonte === 'matrix' ? stale(atualizadoEm, now) : fonte === 'scarlet' ? true : true,
     fonte,
     baseados
   };

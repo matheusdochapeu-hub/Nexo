@@ -302,22 +302,21 @@ function viewCasa(s) {
   }
 
   pecas.push(card(
-    'Cartões',
-    'Nubank Black + cartão da Scarlet',
+    'Cartão',
+    'Nubank Black · pago pela Scarlet',
     `<div class="nx-kpis">
-      ${kpi('Fatura atual', money(cart.total), 'os dois cartões')}
+      ${kpi('Fatura atual', money(cart.black), 'Black')}
       ${kpi('Uso da meta', pctHtml(cart.pctMeta), cart.meta ? `meta ${money(cart.meta)}` : 'sem meta')}
     </div>
     ${cart.meta ? barra('Meta mensal', `${pct(cart.pctMeta)} de ${money(cart.meta)}`, cart.pctMeta, (cart.pctMeta || 0) > 100 ? 'bad' : (cart.pctMeta || 0) > 85 ? 'warn' : '') : ''}
     ${lista(
       [
-        { nome: 'Nubank Black · Matheus', valor: cart.matheus },
-        { nome: 'Cartão · Scarlet', valor: cart.scarlet },
+        { nome: 'Nubank Black (gasto do casal)', valor: cart.black },
         { nome: 'Próximo mês', valor: cart.futuras }
       ],
       (r) => r
     )}`,
-    { chip: cart.velho ? chip('desatualizado', 'warn') : cart.fonte === 'faturas' ? chip('via Faturas', 'ok') : (cart.total !== null ? chip(desde(cart.atualizadoEm) || 'sem hora', 'ok') : '') }
+    { chip: cart.velho ? chip('desatualizado', 'warn') : cart.fonte === 'faturas' ? chip('via Faturas', 'ok') : (cart.black !== null ? chip(desde(cart.atualizadoEm) || 'sem hora', 'ok') : '') }
   ));
 
   if (ben) {
@@ -403,7 +402,7 @@ function viewMatheus(s) {
       ${heroKpi('Seus gastos', money(m.totalGastos), `de ${money(s.casa.caixa.gastosTotal)} na casa`)}
       <div class="nx-kpis">
         ${kpi('Receitas', money(m.totalReceitas), 'o que entra')}
-        ${kpi('Cartão', money(m.cartao), 'Nubank Black')}
+        ${kpi('Gastos do dia', money(m.diarios), 'débito e cartões')}
       </div>
     </div>`,
     { hero: true }
@@ -425,19 +424,6 @@ function viewMatheus(s) {
       nota: r.pago ? '' : 'previsto'
     }))
   ));
-
-  if (cart.meta) {
-    pecas.push(card(
-      'Fatura do Black',
-      cart.fonte === 'faturas'
-        ? 'Recalculada com a lista canônica'
-        : cart.atualizadoEm
-          ? `Atualizada ${desde(cart.atualizadoEm)}`
-          : 'sem sincronização',
-      `${barra('Uso da meta', `${pct(cart.pctMeta)} de ${money(cart.meta)}`, cart.pctMeta, (cart.pctMeta || 0) > 100 ? 'bad' : (cart.pctMeta || 0) > 85 ? 'warn' : '')}
-       <p class="nx-card-sub">Fatura atual ${money(cart.matheus)} · próximo mês ${money(cart.futuras)}</p>`
-    ));
-  }
 
   return `<div class="nx-grid">${pecas.join('')}</div>`;
 }
@@ -477,7 +463,7 @@ function viewScarlet(s) {
 
   pecas.push(card(
     'Seu cartão',
-    'Fatura do mês',
+    'Nubank Black · o gasto é do casal, a fatura é sua',
     `<div class="nx-kpis">
       ${kpi('Fatura', money(sc.cartao), 'a pagar')}
       ${kpi('Renda comprometida', sc.cartao && sc.ganhos ? pctHtml((sc.cartao / sc.ganhos) * 100, 50) : '—', 'da fatura sobre os ganhos')}
