@@ -7,70 +7,73 @@
 
 | App | Versão publicada | O que mudou por causa do Nexo |
 |---|---|---|
-| **Nexo** | `0.13.0` | o próprio shell |
-| **Matrix** | `v134` | consome `js/faturas-data.js` gerado (desde a v132) |
-| **Faturas** | `4.3.0` | consome `js/faturas-data.js` gerado |
-| **Atendimentos** | cache `atend-v67` | adotou o tema (1 linha + CSS) |
-| **Casa Maracaju** | `2.7.4` | **intocado** |
+| **Nexo** | `0.14.0` | o próprio shell |
+| **Matrix** | `v135` | lista de faturas gerada + tema |
+| **Faturas** | `4.4.0` | lista de faturas gerada + tema |
+| **Atendimentos** | cache `atend-v67` | tema |
+| **Casa Maracaju** | `2.7.10` | tema |
 
-Todos publicados no GitHub Pages e verificados por HTTP.
+**O tema está nos quatro apps.** Todos publicados no GitHub Pages.
 
 ## O que o Nexo entrega
 
-- **Fase 1** — áreas Casa / Matheus / Scarlet, KPIs, lançador, modo privacidade,
-  avisos de dado velho.
-- **Fase 2** — atribuição de gastos por dono (regra por nome, troca por toque),
-  busca global manual (`/` ou `Ctrl+K`), conciliação cruzada e card "Hoje".
-- **Fase 3** — tema compartilhado (`theme/`), lista canônica de faturas sem cópia
-  à mão, exportar/importar ajustes, sincronização opcional por Apps Script,
-  botão "Baixar o app".
+- **Fase 1** — áreas Casa / Matheus / Scarlet, KPIs, dock, privacidade, avisos de dado velho.
+- **Fase 2** — dono de cada gasto (regra por nome), busca global manual, conciliação, "Hoje".
+- **Fase 3** — tema compartilhado, lista canônica de faturas sem cópia à mão,
+  exportar/importar ajustes, nuvem opcional por Apps Script, botão "Baixar o app".
 
-Extras pedidos no caminho: vencimentos digitados à mão, dock fixo no topo com os
-quatro apps, cartão Black como um só (pago pela Scarlet).
+Extras pedidos no caminho: vencimentos digitados à mão, dock fixo no topo, cartão Black
+como um só (pago pela Scarlet).
 
 ## Decisões que **não** devem ser desfeitas
 
-1. **O Black é um cartão só** (`cartoes.black`), pago pela **Scarlet**.
-   `matheus` é sempre `null`. Somar satélite + nó `scarlet` dobrava a fatura.
-2. **"Cobertura 5/10" não existe mais** na lista canônica (excluído pelo dono em
-   todos os meses). Se voltar, reaparece no Matrix e no Nexo.
-3. **Ninguém mantém a lista de faturas à mão**: `shared/` é a fonte, e os dois
-   apps carregam um `faturas-data.js` **gerado**. Para mudar item, edite o Faturas
-   e rode `npm run drift:gerar`.
-4. **O tema não pinta** — só tipografia, forma, foco, números e movimento.
+1. **O Black é um cartão só** (`cartoes.black`), pago pela **Scarlet**; `matheus` é sempre
+   `null`. Somar satélite + nó `scarlet` dobrava a fatura.
+2. **"Cobertura 5/10" não existe mais** na lista canônica. Se voltar, reaparece em dois apps.
+3. **Ninguém mantém a lista de faturas à mão**: `shared/` é a fonte e os apps carregam um
+   `faturas-data.js` **gerado**. Para mudar item: edite o Faturas e rode `npm run drift:gerar`.
+4. **O tema não pinta** — tipografia, forma, foco, números e movimento; nunca cor de marca.
 5. **Sem bot de busca** e **sem escrita em chave de outro app** (`nexo_*` apenas).
 6. **Um app só é editado com pedido explícito do dono.**
+
+## A nuvem
+
+`apps_script.gs` está **testado** por `nexo/test/nuvem.test.js` (9 casos, Sheets simulado):
+token obrigatório, JSONP, gravação com revisão, conflito que não sobrescreve, limite de
+tamanho, regra inválida descartada, trava liberada no conflito.
+
+O teste achou um bug real: ao deduplicar, o servidor **perdia o `em`** da regra anterior —
+e é o `em` que decide a mescla. Corrigido (a última regra manda no dono, o `em` mais novo
+sobrevive).
+
+**O que só um deploy prova:** permissões, criação das abas, `LockService` sob concorrência
+e o comportamento do Google. Passo a passo em `apps_script.gs` (cabeçalho, 5 minutos).
 
 ## Como retomar
 
 ```powershell
-# testes (na pasta do app)
-node --test 'nexo\test\*.test.js'        # 137
-node --test 'matrix\test\*.test.js'      # 22
-node --test 'parcelado-a-vista\tests\*.test.js'   # 104
+node --test 'nexo\test\*.test.js'                      # 146
+node --test 'matrix\test\*.test.js'                    # 22
+node --test 'parcelado-a-vista\tests\*.test.js'        # 104
+node --test 'maracaju88\test\**\*.test.js'             # 167
 node --test 'matheus-app-fisioterapia\test\*.test.js'  # 95
 
-# a lista canônica bate com o dono?
-npm run drift            # dentro de nexo/
-
-# regenerar os artefatos depois de editar o Faturas
-npm run drift:gerar
+npm run drift        # a lista canônica bate com o dono?
+npm run drift:gerar  # regenera os artefatos depois de editar o Faturas
 ```
 
 Publicar = commitar na `main`. O Pages reconstrói sozinho.
-
-O Node do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`.
+Node do workspace: `..\node-bin\PFiles64\nodejs\node.exe`.
 
 ## Pendências conhecidas (nada urgente)
 
 | Item | Situação |
 |---|---|
-| **Apps Script da nuvem** | escrito e revisado, **nunca implantado nem testado ao vivo**. Só vale quando o dono publicar a `/exec` e colar URL + token em Ajustes. |
-| **Tema nos outros três apps** | só o Atendimentos adotou. Casa Maracaju, Faturas e Matrix têm uma linha cada — mas a Fase 3.1 dizia "não aplicado"; é decisão do dono. |
-| **Instalar no iPhone** | Safari não dispara `beforeinstallprompt`; o botão não aparece. Falta um fallback com a instrução "Compartilhar → Adicionar à Tela de Início". |
-| **Valores reais no repo público** | `docs/preview-*.jpg`, `shared/faturas-base.json` e os artefatos gerados têm valores da casa. O repo `Nexo` é público. |
-| **Ícones do Atendimentos** | três PNGs estão modificados no working tree daquele repo (não é trabalho do Nexo; não commitei). |
-| **Duas telas para o mesmo fato** | a conciliação mostra "fatura acima da meta" e "cartão da Scarlet passa dos ganhos" — medem coisas diferentes, mas é repetitivo. |
+| **Implantar o Apps Script** | único passo que falta para a nuvem existir. Enquanto não publicar a `/exec`, o botão fica desligado. |
+| **iPhone** | decisão do dono: fica sem botão de baixar (Safari não tem o prompt). |
+| **Só as prévias foram mascaradas** | `docs/preview-*.jpg` e o diagnóstico agora vêm com privacidade ligada. **Os dados gerados (`shared/`, `faturas-data.js`) continuam com valores reais**, porque espelham apps que já são públicos — esconder aqui não esconderia nada. |
+| **Ícones do Atendimentos** | três PNGs modificados no working tree daquele repo desde 10/11 16:43, antes desta sessão. Não são do Nexo. |
+| **Duas telas para o mesmo fato** | "fatura acima da meta" e "cartão da Scarlet passa dos ganhos" medem coisas diferentes, mas é repetitivo. |
 
 ## Mapa rápido
 

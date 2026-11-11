@@ -109,8 +109,17 @@ function normalizarRegras_(lista) {
     var chave = String(r.chave == null ? '' : r.chave).trim();
     if (TIPOS.indexOf(tipo) < 0 || DONOS.indexOf(dono) < 0 || !chave) return;
     var k = tipo + '::' + chave.toLowerCase();
-    if (!mapa[k]) ordem.push(k);
-    mapa[k] = { tipo: tipo, chave: chave, dono: dono, em: r.em || null };
+    var anterior = mapa[k];
+    if (!anterior) ordem.push(k);
+    // A última regra manda no dono, mas o `em` nunca se perde: é ele que decide
+    // a mescla no cliente (regra mais recente vence). Sem isso, uma regra enviada
+    // sem `em` apagava o carimbo da anterior e a mescla virava loteria.
+    mapa[k] = {
+      tipo: tipo,
+      chave: anterior ? anterior.chave : chave,
+      dono: dono,
+      em: r.em || (anterior ? anterior.em : null) || null
+    };
   });
   return ordem.map(function (k) { return mapa[k]; });
 }

@@ -7,8 +7,8 @@
 O Matrix tem 90 itens de fatura; o Faturas, 91. A diferença era:
 
 ```
-· Cobertura 5/10 — R$ 1246 (de 4 a 4)
-· Cotton On 2/3: faturas R$ 69.97 × matrix R$ 69.95
+· Cobertura 5/10 — R$ •••• (de 4 a 4)
+· Cotton On 2/3: faturas R$ •••• × matrix R$ ••••
 ```
 
 Pergunta que eu tinha feito ao dono: *o Cobertura deve aparecer em janeiro/2027?*
@@ -43,10 +43,10 @@ Comparar listas cruas dava falso positivo. Agora `npm run drift` compara o **efe
   (o Matrix aplica os mesmos ajustes — a lista bruta é que difere)
 
   Apagados por você (1):
-    · Cobertura 5/10 — R$ 1246  ⟵ -1 no mês 4
+    · Cobertura 5/10 — R$ ••••  ⟵ -1 no mês 4
 
   Valor editado por você (1):
-    · Cotton On 2/3: lista R$ 69.97 → ajustado R$ 69.95
+    · Cotton On 2/3: lista R$ •••• → ajustado R$ ••••
 ```
 
 E quando a diferença **não** tem explicação:
