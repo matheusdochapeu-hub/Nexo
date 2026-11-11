@@ -1,0 +1,114 @@
+/* ===========================================================================
+   Nexo · tema compartilhado (chassis v1)
+   ---------------------------------------------------------------------------
+   O que este arquivo faz: unifica o "chassi" dos apps da casa — tipografia,
+   forma, foco, números e movimento — SEM repintar a identidade de cada um.
+
+   O que ele NÃO faz (de propósito):
+   - não troca a cor de marca (terracota, verde, azul, matrix);
+   - não mexe em layout, grid, posição ou tamanho de componente;
+   - não define fundo nem texto: usa o que o app já tem, então funciona em
+     tema claro E escuro sem quebrar contraste.
+
+   Como instalar (uma linha, reversível):
+     <link rel="stylesheet" href="nexo-theme.css">   ← depois do CSS do app
+   Rollback: apague a linha. Nada de JS, nada de build.
+
+   Regra de ouro: se um app não usa uma variável daqui, ela é inofensiva.
+   =========================================================================== */
+
+:root {
+  /* Tipografia única da casa */
+  --nx-fonte: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --nx-fonte-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono",
+    Menlo, Consolas, monospace;
+
+  /* Ritmo de forma — NÃO aplicado automaticamente: nenhum dos quatro apps usa
+     estas variáveis hoje (o Faturas tem --r-sm/--r-md/--r-lg próprios).
+     Para unificar raio, cada app mapeia o seu em uma linha:
+        :root { --r-md: 14px; --r-lg: 18px; }
+     Por isso o tema não promete forma: prometer e não entregar é pior. */
+  --nx-raio: 14px;
+
+  /* Anel de foco único */
+  --nx-foco: 3px;
+}
+
+/* --------------------------------------------------------------- tipografia */
+body {
+  font-family: var(--nx-fonte);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Campos de formulário não herdam fonte por padrão em vários navegadores —
+   é uma das maiores fontes de "cara de app diferente". */
+button,
+input,
+select,
+textarea,
+optgroup {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+code,
+kbd,
+pre,
+samp,
+[data-mono] {
+  font-family: var(--nx-fonte-mono);
+}
+
+/* Dinheiro e quantidade alinhados em qualquer lugar, sem precisar de classe */
+body {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ------------------------------------------------------------------- foco */
+:focus-visible {
+  outline: var(--nx-foco) solid var(--primary, var(--accent, currentColor));
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* O anel não deve aparecer em clique de mouse/toque; só em teclado.
+   `:focus-visible` já cuida disso, mas alguns apps matam o outline: aqui
+   devolvemos apenas no teclado para não regredir acessibilidade. */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* -------------------------------------------------------------- movimento */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --------------------------------------------------------------- seleção */
+::selection {
+  background: color-mix(in srgb, var(--primary, #1e5c4a) 22%, transparent);
+}
+
+/* -------------------------------------------------------------- utilidades */
+.nx-somente-leitor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

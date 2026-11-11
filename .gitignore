@@ -1,0 +1,8 @@
+# Dependências e artefatos locais
+node_modules/
+.tmp*/
+*.log
+
+# Ambiente
+.env
+.env.*

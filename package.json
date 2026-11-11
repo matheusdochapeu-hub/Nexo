@@ -1,0 +1,16 @@
+{
+  "name": "nexo-casa",
+  "version": "0.8.2",
+  "private": true,
+  "type": "module",
+  "description": "Nexo — camada unificada dos apps Matrix, Casa Maracaju, Faturas e Atendimentos. Fase 1: shell Casa / Matheus / Scarlet.",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "drift": "node scripts/drift.mjs",
+    "drift:gerar": "node scripts/drift.mjs --gerar"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "license": "MIT"
+}

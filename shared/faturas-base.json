@@ -1,0 +1,553 @@
+{
+  "_leia": "Lista canônica dos itens de fatura. Gerado por nexo/scripts/drift.mjs.",
+  "versao": 1,
+  "origem": "parcelado-a-vista/index.html",
+  "itens": [
+    {
+      "d": "Casa Almeida 5/5",
+      "v": 101.88,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Maravilhas do Lar 2/2",
+      "v": 57.47,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Black Creek 3/4",
+      "v": 64.48,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "S V Comercio 2/2",
+      "v": 97.46,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Globoplay 8/12",
+      "v": 22.9,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Estratégia 3/12",
+      "v": 48.93,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Amazon 3/3",
+      "v": 73.3,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Petlove Clube 10/12",
+      "v": 9.99,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Tennis One 4/5",
+      "v": 79.99,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Black Creek 3/4 (2)",
+      "v": 94.97,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Petlove NuPay 2/2",
+      "v": 206.4,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Studio Rocha 4/6",
+      "v": 350,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Quiosque Ribeirão 2/2",
+      "v": 57.49,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Maravilhas do Lar 2/2 (2)",
+      "v": 93.43,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Casas Bahia 10/10",
+      "v": 203.95,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Tennis One 3/4",
+      "v": 49.99,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Le Sac 4/4",
+      "v": 62.99,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Converse Dom Pedro 5/6",
+      "v": 124.96,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Gelatto Borelli",
+      "v": 66,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Estacionamento",
+      "v": 17.5,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Rd Saude Online (1)",
+      "v": 88.28,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Mercadolivre",
+      "v": 67.64,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Rd Saude Online (2)",
+      "v": 116.94,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Claro Flex",
+      "v": 44.99,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Shopping Ribeirão",
+      "v": 39.8,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Bagaggio 1/2",
+      "v": 62.43,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Pernambucanas 1/3",
+      "v": 113.31,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Tennis One 1/10",
+      "v": 157.07,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Tramontina",
+      "v": 25.9,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Divai Utilidades",
+      "v": 161.94,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Caedu",
+      "v": 19.99,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Estac Shopping (2)",
+      "v": 26.5,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Inovathi 1/3",
+      "v": 60.01,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Pernambucanas (avulso)",
+      "v": 59.99,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Lupofranquia 1/3",
+      "v": 262.88,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Sigapay",
+      "v": 3,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Cotton On 1/3",
+      "v": 69.97,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Borelli (1)",
+      "v": 46,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Borelli (2)",
+      "v": 28,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Corrida Sampa 1/3",
+      "v": 79.31,
+      "de": 1,
+      "ate": 1
+    },
+    {
+      "d": "Tennis One 4/4",
+      "v": 49.99,
+      "de": 2,
+      "ate": 2
+    },
+    {
+      "d": "Cotton On 2/3",
+      "v": 69.97,
+      "de": 2,
+      "ate": 2
+    },
+    {
+      "d": "Converse Dom Pedro 6/6",
+      "v": 124.96,
+      "de": 2,
+      "ate": 2
+    },
+    {
+      "d": "Pernambucanas 2/3",
+      "v": 113.31,
+      "de": 2,
+      "ate": 2
+    },
+    {
+      "d": "Bagaggio 2/2",
+      "v": 62.42,
+      "de": 2,
+      "ate": 2
+    },
+    {
+      "d": "Tennis One 2/10",
+      "v": 156.99,
+      "de": 2,
+      "ate": 2
+    },
+    {
+      "d": "Inovathi 2/3",
+      "v": 59.99,
+      "de": 2,
+      "ate": 2
+    },
+    {
+      "d": "Lupofranquia 2/3",
+      "v": 262.86,
+      "de": 2,
+      "ate": 2
+    },
+    {
+      "d": "Tennis One 5/5",
+      "v": 79.99,
+      "de": 2,
+      "ate": 2
+    },
+    {
+      "d": "Black Creek 4/4",
+      "v": 94.97,
+      "de": 2,
+      "ate": 2
+    },
+    {
+      "d": "Studio Rocha 5/6",
+      "v": 350,
+      "de": 2,
+      "ate": 2
+    },
+    {
+      "d": "Black Creek 4/4 (2)",
+      "v": 64.48,
+      "de": 2,
+      "ate": 2
+    },
+    {
+      "d": "Globoplay 9/12",
+      "v": 22.9,
+      "de": 2,
+      "ate": 2
+    },
+    {
+      "d": "Estratégia 4/12",
+      "v": 48.93,
+      "de": 2,
+      "ate": 2
+    },
+    {
+      "d": "Petlove Clube 11/12",
+      "v": 9.99,
+      "de": 2,
+      "ate": 2
+    },
+    {
+      "d": "Corrida Sampa 2/3",
+      "v": 79.31,
+      "de": 2,
+      "ate": 2
+    },
+    {
+      "d": "Pernambucanas 3/3",
+      "v": 113.31,
+      "de": 3,
+      "ate": 3
+    },
+    {
+      "d": "Cotton On 3/3",
+      "v": 69.97,
+      "de": 3,
+      "ate": 3
+    },
+    {
+      "d": "Tennis One 3/10",
+      "v": 156.99,
+      "de": 3,
+      "ate": 3
+    },
+    {
+      "d": "Inovathi 3/3",
+      "v": 59.99,
+      "de": 3,
+      "ate": 3
+    },
+    {
+      "d": "Lupofranquia 3/3",
+      "v": 262.86,
+      "de": 3,
+      "ate": 3
+    },
+    {
+      "d": "Studio Rocha 6/6",
+      "v": 350,
+      "de": 3,
+      "ate": 3
+    },
+    {
+      "d": "Globoplay 10/12",
+      "v": 22.9,
+      "de": 3,
+      "ate": 3
+    },
+    {
+      "d": "Estratégia 5/12",
+      "v": 48.93,
+      "de": 3,
+      "ate": 3
+    },
+    {
+      "d": "Petlove Clube 12/12",
+      "v": 9.99,
+      "de": 3,
+      "ate": 3
+    },
+    {
+      "d": "Corrida Sampa 3/3",
+      "v": 79.31,
+      "de": 3,
+      "ate": 3
+    },
+    {
+      "d": "Studio Rocha 1/6 (nova)",
+      "v": 350,
+      "de": 4,
+      "ate": 4
+    },
+    {
+      "d": "Globoplay 11/12",
+      "v": 22.9,
+      "de": 4,
+      "ate": 4
+    },
+    {
+      "d": "Petlove Clube 1/12 (nova)",
+      "v": 9.99,
+      "de": 4,
+      "ate": 4
+    },
+    {
+      "d": "Cobertura 5/10",
+      "v": 1246,
+      "de": 4,
+      "ate": 4
+    },
+    {
+      "d": "Tennis One 4/10",
+      "v": 156.99,
+      "de": 4,
+      "ate": 4
+    },
+    {
+      "d": "Tennis One 5/10",
+      "v": 156.99,
+      "de": 5,
+      "ate": 5
+    },
+    {
+      "d": "Tennis One 6/10",
+      "v": 156.99,
+      "de": 6,
+      "ate": 6
+    },
+    {
+      "d": "Tennis One 7/10",
+      "v": 156.99,
+      "de": 7,
+      "ate": 7
+    },
+    {
+      "d": "Tennis One 8/10",
+      "v": 156.99,
+      "de": 8,
+      "ate": 8
+    },
+    {
+      "d": "Tennis One 9/10",
+      "v": 156.99,
+      "de": 9,
+      "ate": 9
+    },
+    {
+      "d": "Tennis One 10/10",
+      "v": 156.99,
+      "de": 10,
+      "ate": 10
+    },
+    {
+      "d": "Estratégia 6/12",
+      "v": 48.93,
+      "de": 4,
+      "ate": 4
+    },
+    {
+      "d": "Estratégia 7/12",
+      "v": 48.93,
+      "de": 5,
+      "ate": 5
+    },
+    {
+      "d": "Estratégia 8/12",
+      "v": 48.93,
+      "de": 6,
+      "ate": 6
+    },
+    {
+      "d": "Estratégia 9/12",
+      "v": 48.93,
+      "de": 7,
+      "ate": 7
+    },
+    {
+      "d": "Estratégia 10/12",
+      "v": 48.93,
+      "de": 8,
+      "ate": 8
+    },
+    {
+      "d": "Estratégia 11/12",
+      "v": 48.93,
+      "de": 9,
+      "ate": 9
+    },
+    {
+      "d": "Estratégia 12/12",
+      "v": 48.93,
+      "de": 10,
+      "ate": 10
+    },
+    {
+      "d": "Studio Rocha 2/6 (nova)",
+      "v": 350,
+      "de": 5,
+      "ate": 5
+    },
+    {
+      "d": "Studio Rocha 3/6 (nova)",
+      "v": 350,
+      "de": 6,
+      "ate": 6
+    },
+    {
+      "d": "Studio Rocha 4/6 (nova)",
+      "v": 350,
+      "de": 7,
+      "ate": 7
+    },
+    {
+      "d": "Studio Rocha 5/6 (nova)",
+      "v": 350,
+      "de": 8,
+      "ate": 8
+    },
+    {
+      "d": "Studio Rocha 6/6 (nova)",
+      "v": 350,
+      "de": 9,
+      "ate": 9
+    },
+    {
+      "d": "Globoplay 12/12",
+      "v": 22.9,
+      "de": 5,
+      "ate": 5
+    },
+    {
+      "d": "Petlove Clube 2/12",
+      "v": 9.99,
+      "de": 5,
+      "ate": 12
+    }
+  ]
+}

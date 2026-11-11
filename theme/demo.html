@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="on">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nexo · tema compartilhado</title>
+<link rel="stylesheet" href="./nexo-theme.css">
+<style>
+  /* ---- Chassi do demo: os mesmos componentes em quatro cores de marca ---- */
+  :root {
+    --i: #f6f5f1;
+    --s: #fff;
+    --l: #e3e0d7;
+    --t: #191817;
+    --t2: #6e6a62;
+    --gap: 16px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 20px 16px 40px;
+    background: var(--i);
+    color: var(--t);
+    max-width: 1180px;
+    margin-inline: auto;
+  }
+
+  h1 { font-size: 22px; letter-spacing: -0.02em; margin: 0; }
+  .sub { color: var(--t2); font-size: 13.5px; margin: 4px 0 18px; }
+
+  .barra {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  .alternar {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border: 1px solid var(--l);
+    background: var(--s);
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+
+  .alternar[aria-pressed="true"] { background: var(--t); color: var(--i); border-color: var(--t); }
+
+  .grade {
+    display: grid;
+    gap: var(--gap);
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    align-items: start;
+  }
+
+  .cartao {
+    background: var(--s);
+    border: 1px solid var(--l);
+    border-radius: 14px;
+    padding: 16px;
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .marca {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--t2);
+  }
+
+  .ponto { width: 10px; height: 10px; border-radius: 50%; background: var(--marca); }
+
+  .kpi-rot { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--t2); font-weight: 600; margin: 0; }
+  .kpi { font-size: 27px; font-weight: 650; letter-spacing: -0.03em; margin: 2px 0 0; }
+  .kpi small { display: block; font-size: 12px; font-weight: 400; color: var(--t2); letter-spacing: 0; margin-top: 2px; }
+
+  .btn {
+    border: 0;
+    background: var(--marca);
+    color: #fff;
+    border-radius: 999px;
+    padding: 11px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+  }
+
+  .campo {
+    width: 100%;
+    border: 1px solid var(--l);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    background: #fbfaf7;
+    color: var(--t);
+    min-height: 42px;
+  }
+
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .chip {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--marca) 12%, #fff);
+    color: var(--marca);
+  }
+
+  .linha {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--l);
+    font-size: 13.5px;
+  }
+
+  .linha:last-child { border-bottom: 0; }
+  .linha b { font-weight: 600; }
+
+  /* ---- "Sem tema": a divergência real que o CSS resolve (fonte do corpo,
+     fonte dos campos e anel de foco). Raio de canto NÃO entra aqui: o tema
+     não mexe em forma — ver theme/README.md. ---- */
+  html[data-tema="off"] body {
+    font-family: Georgia, "Times New Roman", serif;
+    font-variant-numeric: normal;
+  }
+
+  html[data-tema="off"] .campo {
+    font-family: Verdana, Geneva, sans-serif;
+    font-size: 12px;
+  }
+
+  html[data-tema="off"] :focus-visible { outline: 1px dotted currentColor; outline-offset: 1px; }
+</style>
+</head>
+<body>
+
+<div class="barra">
+  <div>
+    <h1>Tema compartilhado</h1>
+    <p class="sub">Mesmo chassi, quatro marcas. Alterne para ver o que o tema muda — e o que ele deixa em paz.</p>
+  </div>
+  <button class="alternar" id="alternar" type="button" aria-pressed="true">Com tema</button>
+</div>
+
+<div class="grade" id="grade"></div>
+
+<script>
+  const APPS = [
+    { nome: 'Matrix', cor: '#1E5C4A' },
+    { nome: 'Casa Maracaju', cor: '#2F6B3F' },
+    { nome: 'Faturas', cor: '#2A4A7F' },
+    { nome: 'Atendimentos', cor: '#B5542E' }
+  ];
+
+  document.getElementById('grade').innerHTML = APPS.map((a) => `
+    <section class="cartao" style="--marca:${a.cor}">
+      <div class="marca"><span class="ponto"></span>${a.nome}</div>
+      <p class="kpi-rot">Fatura atual</p>
+      <p class="kpi">R$ 1.394,88<small>1.094,88 no próximo mês</small></p>
+      <div class="chips"><span class="chip">Casa</span><span class="chip">Nov 2026</span></div>
+      <div>
+        <div class="linha"><span>Financiamento</span><b>R$ 1.395,88</b></div>
+        <div class="linha"><span>Caronas</span><b>R$ 921,85</b></div>
+        <div class="linha"><span>Total</span><b>R$ 2.317,73</b></div>
+      </div>
+      <input class="campo" placeholder="Buscar lançamento…" aria-label="Buscar lançamento">
+      <button class="btn" type="button">Abrir app</button>
+    </section>`).join('');
+
+  const html = document.documentElement;
+  const botao = document.getElementById('alternar');
+
+  if (new URLSearchParams(location.search).get('tema') === 'off') {
+    html.dataset.tema = 'off';
+  }
+
+  function pintar() {
+    const comTema = html.dataset.tema === 'on';
+    botao.textContent = comTema ? 'Com tema' : 'Sem tema (como hoje)';
+    botao.setAttribute('aria-pressed', String(comTema));
+  }
+
+  botao.addEventListener('click', () => {
+    html.dataset.tema = html.dataset.tema === 'on' ? 'off' : 'on';
+    pintar();
+  });
+
+  pintar();
+</script>
+</body>
+</html>
