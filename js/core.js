@@ -12,7 +12,7 @@
  * Tudo é opcional. Fonte ausente vira `null` — nunca zero inventado.
  */
 
-import { indiceDoMes, totalDoMes, tamanhoBase } from './faturas.js';
+import { indiceDoMes, mesDoIndice, totalDoMes, tamanhoBase } from './faturas.js';
 
 export const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -254,6 +254,38 @@ function beneficios(sat, maracaju, now) {
  *   3. `scarlet.faturaNubank` do mês (fallback histórico do Matrix).
  *   4. Nada → `null` (a tela mostra "—").
  * ---------------------------------------------------------------------- */
+const NOMES_MES = [
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro'
+];
+
+/**
+ * Fatura do mês seguinte segundo o satélite do Matrix.
+ * Prefere `faturasPorMes["2026-Dezembro"].total`; sem ele, cai no escalar
+ * `faturasFuturasCompromissadas` (que é um valor de reserva, pode estar velho).
+ */
+function proximaFaturaDoSatelite(f, now) {
+  if (!f) return null;
+  const proximo = mesDoIndice(indiceDoMes(now.getFullYear(), now.getMonth() + 1) + 1);
+  const chave = `${proximo.ano}-${NOMES_MES[proximo.mes - 1]}`;
+  const doMes = f.faturasPorMes && f.faturasPorMes[chave];
+  if (doMes) {
+    const v = num(doMes.total != null ? doMes.total : doMes.valorReal);
+    if (v !== null) return v;
+  }
+  return num(f.faturasFuturasCompromissadas);
+}
+
 function cartoes(sat, month, now, local, base) {
   const f = sat && sat.faturas;
   const doMes = month && month.scarlet ? num(month.scarlet.faturaNubank) : null;
@@ -281,7 +313,10 @@ function cartoes(sat, month, now, local, base) {
   } else if (f) {
     black = num(f.faturaAtualReal != null ? f.faturaAtualReal : f.faturaAtualValor);
     meta = f.limiteMetaMensal != null ? num(f.limiteMetaMensal) : null;
-    futuras = num(f.faturasFuturasCompromissadas);
+    // "Próximo mês" tem que ser a fatura seguinte de verdade. O mapa por mês do
+    // satélite é a melhor fonte disponível aqui; `faturasFuturasCompromissadas`
+    // é só um escalar de emergência (já veio 1.568,05 quando a fatura era 1.793,36).
+    futuras = proximaFaturaDoSatelite(f, now);
     atualizadoEm = f.atualizadoEm || null;
     fonte = 'matrix';
   } else if (doMes !== null) {

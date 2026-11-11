@@ -490,3 +490,18 @@ test('conciliação: sem mês lançado não inventa achado de caixa', () => {
   assert.ok(!a.some((x) => x.id === 'cartoes' || x.id === 'sobra'));
   assert.equal(contarAlertas(a), 0);
 });
+
+test('cartões: "próximo mês" usa o mapa por mês do satélite, não o escalar velho', () => {
+  const st = estadoMatrix();
+  st.satellites.faturas.faturasPorMes = { '2026-Dezembro': { total: 1793.36 } };
+  const s = buildSnapshot({ matrix: st, now: AGORA });
+  assert.equal(s.casa.cartoes.futuras, 1793.36);
+  assert.notEqual(s.casa.cartoes.futuras, 1568.05, 'o escalar de reserva não pode ganhar do mapa');
+});
+
+test('cartões: sem o mês no mapa, cai no escalar de reserva', () => {
+  const st = estadoMatrix();
+  st.satellites.faturas.faturasPorMes = {};
+  const s = buildSnapshot({ matrix: st, now: AGORA });
+  assert.equal(s.casa.cartoes.futuras, 1568.05);
+});
