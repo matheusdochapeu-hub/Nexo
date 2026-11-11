@@ -801,8 +801,42 @@ body[data-privado="1"] .nx-money {
   min-height: 1px;
 }
 
-/* ------------------------------------------------------------------ nuvem */
-.nx-nuvem {
+/* ---------------------------------------------------------------- instalar */
+.nx-instalar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  background: var(--nx-accent-soft);
+  border: 1px solid var(--nx-accent);
+  border-radius: var(--nx-r-lg);
+}
+
+.nx-instalar[hidden] {
+  display: none;
+}
+
+.nx-instalar-txt {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.nx-instalar-txt strong {
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: var(--nx-accent);
+}
+
+.nx-instalar-txt span {
+  font-size: 12.5px;
+  color: var(--nx-ink-2);
+}
+
+/* ------------------------------------------------------------------ nuvem */.nx-nuvem {
   margin-top: 14px;
   display: flex;
   flex-wrap: wrap;

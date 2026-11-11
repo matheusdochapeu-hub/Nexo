@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./icons/nexo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="./icons/nexo.svg">
-<link rel="stylesheet" href="./css/nexo.css?v=0.11.0">
+<link rel="stylesheet" href="./css/nexo.css?v=0.12.0">
 </head>
 <body data-privado="0">
 
@@ -43,6 +43,14 @@
   </header>
 
   <nav class="nx-tabs" id="tabs" role="tablist" aria-label="Áreas do Nexo"></nav>
+
+  <div class="nx-instalar" id="instalar" hidden>
+    <div class="nx-instalar-txt">
+      <strong>Levar o Nexo para a tela inicial</strong>
+      <span>Funciona offline e abre em tela cheia.</span>
+    </div>
+    <button class="nx-btn nx-btn--primario nx-btn--mini" id="btn-instalar" type="button">Baixar o app</button>
+  </div>
 
   <div id="avisos" hidden></div>
 
@@ -86,6 +94,6 @@
   </section>
 </div>
 
-<script type="module" src="./js/app.js?v=0.11.0"></script>
+<script type="module" src="./js/app.js?v=0.12.0"></script>
 </body>
 </html>

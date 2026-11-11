@@ -35,18 +35,18 @@ fonte da verdade dos seus próprios dados.
 
 ## Rodar localmente
 
-```powershell
+``powershell
 # na pasta pai (5. IA), para todos os apps dividirem a mesma origem
 python -m http.server 8000
 # http://localhost:8000/nexo/
-```
+``
 
 ## Testes
 
-```powershell
-node --test test/*.test.js    # 131 testes
+``powershell
+node --test test/*.test.js    # 137 testes
 npm run drift                 # diferenças dono × cópia, separando ajuste de bug
-```
+``
 
 Publicado em <https://matheusdochapeu-hub.github.io/Nexo/> (repo `Nexo`, Pages na `main`).
 Publicar = commitar na `main`; o Pages reconstrói sozinho.
@@ -64,6 +64,7 @@ O Node do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe` (só quando n
 | `js/faturas.js` | **puro**: recalcula faturas da lista canônica + `pv4_*` |
 | `js/ajustes.js` | **puro**: serializa/valida o backup de regras e privacidade |
 | `js/sync.js` | **puro no núcleo**: URL, mescla e conflito; rede por JSONP/POST |
+| `js/instalar.js` | regra pura do botão de instalar + detecção de modo app |
 | `apps_script.gs` | backend opcional dos ajustes (Sheets + token + revisão) |
 | `shared/faturas-base.js` | **gerado**: lista canônica (90 itens, já sem o excluído). Não edite à mão |
 | `scripts/drift.mjs` | compara dono × cópia, gera a lista canônica |
@@ -176,6 +177,10 @@ O Node do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe` (só quando n
     mês; `dataNoMes()` ajusta dia 31 para o último dia do mês. Conta paga é ignorada;
     conta sem dia é "sem prazo", nunca atrasada. Não deduza vencimento de data de
     pagamento ou de ordem de lista.
+30. **Botão "Baixar o app" é opt-in do navegador.** Só aparece com `beforeinstallprompt`
+    disparado, some ao instalar (`appinstalled`) e fica escondido por
+    `nexo_instalado = true` (chave **sem** prefixo: `salvarPreferencia` já põe `nexo_`).
+    `deveMostrarBotao()` é pura e testada; `emModoApp()` cobre `display-mode` e iOS.
 
 ## Vizinhança
 

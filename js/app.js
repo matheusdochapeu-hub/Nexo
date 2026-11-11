@@ -8,6 +8,7 @@ import { lerTudo, lerContexto, lerPreferencia, salvarPreferencia, definirDono, d
 import { DONO_LABEL, proximoDono, conciliar, contarAlertas, buildSnapshot, alertas, normalizarNomeConta } from './core.js';
 import { serializarAjustes, lerAjustes, nomeArquivo } from './ajustes.js';
 import { normalizarUrl, urlValida, sincronizar } from './sync.js';
+import { deveMostrarBotao, emModoApp, CHAVE_INSTALADO } from './instalar.js';
 import { construirIndice, buscar, agrupar, resumo } from './search.js';
 import { APPS, urlDoApp, VERSION } from './config.js';
 
@@ -651,6 +652,27 @@ function aplicarPrivacidade(ativo) {
   botao.title = valor ? 'Mostrar valores' : 'Esconder valores';
 }
 
+/* ---------------------------------------------------------- instalar app */
+let promptInstalacao = null;
+
+function atualizarBotaoInstalar() {
+  const barra = $('#instalar');
+  if (!barra) return;
+  barra.hidden = !deveMostrarBotao({
+    emModoApp: emModoApp(window),
+    marcadoInstalado: lerPreferencia(CHAVE_INSTALADO, false) === true,
+    temPrompt: !!promptInstalacao
+  });
+}
+
+/** Esconde a barra; `marcar` grava que já foi instalado neste navegador. */
+function esconderInstalar(marcar) {
+  if (marcar) salvarPreferencia(CHAVE_INSTALADO, true);
+  const barra = $('#instalar');
+  if (barra) barra.hidden = true;
+  promptInstalacao = null;
+}
+
 /* ------------------------------------------------------------------ shell */
 function render() {
   const ctx = lerContexto();
@@ -802,6 +824,37 @@ function iniciar() {
     );
     (mesmo || document.querySelector(`.nx-tab[data-view="${viewAtual}"]`))?.focus();
   });
+
+  /* Baixar o app: só aparece se o navegador oferecer instalação */
+  window.addEventListener('beforeinstallprompt', (ev) => {
+    ev.preventDefault();
+    promptInstalacao = ev;
+    atualizarBotaoInstalar();
+  });
+
+  window.addEventListener('appinstalled', () => esconderInstalar(true));
+
+  $('#btn-instalar')?.addEventListener('click', async () => {
+    if (!promptInstalacao) {
+      esconderInstalar(false);
+      return;
+    }
+    try {
+      promptInstalacao.prompt();
+      const escolha = await promptInstalacao.userChoice;
+      if (escolha && escolha.outcome === 'accepted') {
+        esconderInstalar(true);
+      } else {
+        promptInstalacao = null; // o evento só pode ser usado uma vez
+        atualizarBotaoInstalar();
+      }
+    } catch {
+      promptInstalacao = null;
+      atualizarBotaoInstalar();
+    }
+  });
+
+  atualizarBotaoInstalar();
 
   /* Busca global manual */
   $('#btn-busca')?.addEventListener('click', abrirBusca);
