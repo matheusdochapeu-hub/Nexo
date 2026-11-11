@@ -7,7 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildSnapshot, alertas, isoLocal, somarDias } from '../js/core.js';
+import { buildSnapshot, alertas, isoLocal, somarDias, dataNoMes } from '../js/core.js';
 
 const AGORA = new Date('2026-11-11T12:00:00-03:00'); // quarta-feira
 
@@ -154,4 +154,85 @@ test('todo placeholder dos alertas existe em valores', () => {
     const chaves = [...a.texto.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
     chaves.forEach((k) => assert.ok(k in a.valores, `alerta ${a.id} usa {${k}} sem valor`));
   });
+});
+
+/* ------------------------------------------- vencimentos informados à mão */
+test('dataNoMes respeita o último dia do mês', () => {
+  assert.equal(dataNoMes(new Date(2026, 10, 11), 20), '2026-11-20');
+  // novembro tem 30 dias: dia 31 vira 30
+  assert.equal(dataNoMes(new Date(2026, 10, 11), 31), '2026-11-30');
+  // fevereiro de 2027 tem 28
+  assert.equal(dataNoMes(new Date(2027, 1, 10), 31), '2027-02-28');
+  assert.equal(dataNoMes(new Date(2026, 10, 11), 0), '2026-11-01');
+});
+
+test('conta vencida vira alerta atrasado com valor e data', () => {
+  const { snapshot, extras } = cenario();
+  const lista = alertas(snapshot, { ...extras, vencimentos: { energia: 5 } });
+  const a = lista.find((x) => x.id === 'contas-vencidas');
+  assert.ok(a, 'deveria existir alerta de conta vencida');
+  assert.equal(a.quando, 'atrasado');
+  assert.equal(a.valores.valor, 243.17);
+  assert.equal(a.valores.data, '05/11');
+  assert.match(a.titulo, /1 conta vencida/);
+});
+
+test('conta que vence hoje entra como "hoje"', () => {
+  const { snapshot, extras } = cenario();
+  const lista = alertas(snapshot, { ...extras, vencimentos: { energia: 11 } });
+  const a = lista.find((x) => x.id === 'contas-hoje');
+  assert.ok(a);
+  assert.equal(a.quando, 'hoje');
+  assert.equal(a.valores.valor, 243.17);
+});
+
+test('conta que vence amanhã vira alerta de amanhã', () => {
+  const { snapshot, extras } = cenario();
+  const lista = alertas(snapshot, { ...extras, vencimentos: { energia: 12 } });
+  const a = lista.find((x) => x.id === 'contas-proximas');
+  assert.ok(a);
+  assert.equal(a.quando, 'amanha');
+});
+
+test('conta que vence em 3 dias entra como próximo', () => {
+  const { snapshot, extras } = cenario();
+  const lista = alertas(snapshot, { ...extras, vencimentos: { energia: 14 } });
+  const a = lista.find((x) => x.id === 'contas-proximas');
+  assert.equal(a.quando, 'proximo');
+});
+
+test('conta longe do vencimento não vira alerta de prazo', () => {
+  const { snapshot, extras } = cenario();
+  const lista = alertas(snapshot, { ...extras, vencimentos: { energia: 28 } });
+  assert.ok(!lista.some((x) => x.id === 'contas-hoje' || x.id === 'contas-proximas' || x.id === 'contas-vencidas'));
+});
+
+test('conta paga não entra, mesmo com prazo informado', () => {
+  const { snapshot, extras } = cenario();
+  const lista = alertas(snapshot, { ...extras, vencimentos: { agua: 5 } });
+  assert.ok(!lista.some((x) => x.id === 'contas-vencidas'));
+});
+
+test('conta sem prazo continua como item do mês', () => {
+  const { snapshot, extras } = cenario();
+  const lista = alertas(snapshot, { ...extras, vencimentos: {} });
+  const a = lista.find((x) => x.id === 'contas-pendentes');
+  assert.ok(a);
+  assert.equal(a.quando, 'mes');
+  assert.match(a.texto, /sem prazo|Informe o dia/);
+});
+
+test('prazo informado remove a conta do grupo "sem prazo"', () => {
+  const { snapshot, extras } = cenario();
+  const lista = alertas(snapshot, { ...extras, vencimentos: { energia: 28 } });
+  assert.ok(!lista.some((x) => x.id === 'contas-pendentes'));
+});
+
+test('vencimento por nome ignora acento e caixa', () => {
+  const { snapshot, extras } = cenario();
+  const lista = alertas(snapshot, { ...extras, vencimentos: { ENERGIA: 5 } });
+  // a chave do mapa vem normalizada pela store; aqui simulamos a normalização
+  assert.ok(!lista.some((x) => x.id === 'contas-vencidas'), 'chave crua em maiúscula não casa');
+  const normalizado = alertas(snapshot, { ...extras, vencimentos: { energia: 5 } });
+  assert.ok(normalizado.some((x) => x.id === 'contas-vencidas'));
 });

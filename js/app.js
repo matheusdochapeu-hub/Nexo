@@ -4,8 +4,8 @@
  * Nenhuma escrita no estado dos outros apps.
  */
 
-import { lerTudo, lerContexto, lerPreferencia, salvarPreferencia, definirDono, limparRegras, lerBruto, lerRegras, aplicarAjustes } from './store.js';
-import { DONO_LABEL, proximoDono, conciliar, contarAlertas, buildSnapshot, alertas } from './core.js';
+import { lerTudo, lerContexto, lerPreferencia, salvarPreferencia, definirDono, definirVencimento, limparRegras, lerBruto, lerRegras, aplicarAjustes } from './store.js';
+import { DONO_LABEL, proximoDono, conciliar, contarAlertas, buildSnapshot, alertas, normalizarNomeConta } from './core.js';
 import { serializarAjustes, lerAjustes, nomeArquivo } from './ajustes.js';
 import { normalizarUrl, urlValida, sincronizar } from './sync.js';
 import { construirIndice, buscar, agrupar, resumo } from './search.js';
@@ -29,6 +29,7 @@ const VIEWS = [
 let snapshot = null;
 let viewAtual = 'casa';
 let estadoHoje = [];
+let estadoVenc = {};
 
 /* ------------------------------------------------------------------ utils */
 const $ = (sel) => document.querySelector(sel);
@@ -151,6 +152,25 @@ function listaGastos(itens) {
 
 function moneyTexto(v) {
   return Number.isFinite(Number(v)) ? BRL.format(Number(v)) : 'sem valor';
+}
+
+/* ---------------------------------------------------- vencimentos */
+function listaVencimentos(pendentes, vencimentos) {
+  if (!pendentes || !pendentes.length) {
+    return '<p class="nx-card-sub">Nenhuma conta em aberto neste mês.</p>';
+  }
+  return `<ul class="nx-list">${pendentes
+    .map((p) => {
+      const dia = vencimentos[normalizarNomeConta(p.nome)] || '';
+      return `<li class="nx-row nx-row--venc">
+        <span class="nx-row-nome">${esc(p.nome)}</span>
+        <input class="nx-input nx-input--dia" type="number" min="1" max="31" inputmode="numeric"
+               value="${esc(dia)}" placeholder="dia" data-venc="${esc(p.nome)}"
+               aria-label="Dia de vencimento de ${esc(p.nome)}">
+        <span class="nx-row-val">${money(p.valor)}</span>
+      </li>`;
+    })
+    .join('')}</ul>`;
 }
 
 /* ------------------------------------------------------- conciliação */
@@ -341,6 +361,16 @@ function viewCasa(s) {
        <button class="nx-link" type="button" data-acao="limpar-regras">Reverter tudo</button></p>`,
     { largo: true }
   ));
+
+  if (c.pendentes && c.pendentes.length) {
+    pecas.push(card(
+      'Vencimentos',
+      'Dia de cada conta em aberto',
+      `${listaVencimentos(c.pendentes, estadoVenc)}
+       <p class="nx-card-sub">O Matrix não guarda vencimento. O dia que você informar aqui vira aviso no "Hoje".</p>`,
+      { largo: true }
+    ));
+  }
 
   if (!ben) {
     pecas.push(card(
@@ -647,7 +677,13 @@ function render() {
     regras: ctx.regras,
     now: agora
   });
-  estadoHoje = alertas(snapshot, { maracaju: ctx.maracaju, agenda: ctx.agenda, now: agora });
+  estadoHoje = alertas(snapshot, {
+    maracaju: ctx.maracaju,
+    agenda: ctx.agenda,
+    vencimentos: ctx.vencimentos,
+    now: agora
+  });
+  estadoVenc = ctx.vencimentos || {};
   indiceBusca = null; // dado novo = índice novo na próxima busca
 
   const semNada = !snapshot.fontes.matrix && !snapshot.fontes.atendimentos && !snapshot.casa.beneficios;
@@ -746,6 +782,17 @@ function iniciar() {
     const btn = $('#btn-atualizar');
     btn.classList.add('is-ok');
     setTimeout(() => btn.classList.remove('is-ok'), 600);
+  });
+
+  /* Vencimentos: digitar o dia e sair do campo já salva. */
+  $('#view').addEventListener('change', (ev) => {
+    const campo = ev.target.closest('[data-venc]');
+    if (!campo) return;
+    const nome = campo.dataset.venc;
+    definirVencimento(nome, campo.value);
+    render();
+    const mesmo = [...document.querySelectorAll('[data-venc]')].find((el) => el.dataset.venc === nome);
+    mesmo?.focus();
   });
 
   /* Atribuição por pessoa: tocar num gasto troca o dono e a escolha fica salva. */

@@ -5,7 +5,7 @@
 > Camada unificada sobre os quatro apps da casa: **Matrix**, **Casa Maracaju**,
 > **Faturas** e **Atendimentos**. Começa como um shell de leitura; cresce em fases.
 
-**Versão 0.9.0 — Fase 3 em andamento.** Nenhum dos quatro apps foi alterado, e nenhum
+**Versão 0.10.0 — Fase 3 em andamento.** Nenhum dos quatro apps foi alterado, e nenhum
 depende do Nexo para funcionar.
 
 ![Nexo — tema compartilhado (embaixo) contra a divergência de hoje (acima)](docs/preview-tema-comparativo.jpg)
@@ -125,11 +125,16 @@ O primeiro card da Casa responde "o que tem para hoje?", sempre na mesma ordem:
 | 🧹 Tarefas do lar | `tasks` + `history[data][taskId]` do Casa Maracaju |
 | 🩺 Atendimentos | `ft_local_schedules` do Atendimentos (`data`, `hora`; cancelado não conta) |
 | 💳 Recarga de VA/VR | `creditDate` do satélite (4º dia útil), só quando faltam até 7 dias |
-| 💰 Contas a pagar | `pago: false` no mês do Matrix |
+| 💰 Contas a pagar | `pago: false` no mês do Matrix + o **dia de vencimento que você informa** em Vencimentos |
 
 **Só entra o que tem data de verdade.** O Matrix registra `pago: true/false` mas **não guarda
-data de vencimento** — então o Nexo não promete "vence amanhã". Conta parada aparece como
-item do mês, não como alarme falso.
+data de vencimento** — então o Nexo não inventa "vence amanhã". Você informa o dia em
+**Vencimentos** (um campo por conta em aberto) e a partir daí o "Hoje" avisa:
+*conta vencida* (vermelho), *vence hoje*, *vence em até 3 dias*. Conta sem dia informado
+continua aparecendo como "a pagar (sem prazo)" — nunca como alarme falso.
+
+O dia é por **nome da conta** e vale para todos os meses (dia 31 vira 30/28 quando o mês é
+mais curto). Fica em `nexo_vencimentos`, só no aparelho.
 
 > Push notification de verdade exige servidor (o Nexo não tem backend). O "Hoje" é a
 > versão honesta: a informação pronta na abertura, sem prometer o que não pode entregar.

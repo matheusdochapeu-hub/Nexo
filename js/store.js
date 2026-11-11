@@ -11,7 +11,7 @@
  * as chaves que cada app já grava, sem pedir nada a ninguém.
  */
 
-import { safeParse, buildSnapshot, arr } from './core.js';
+import { safeParse, buildSnapshot, arr, normalizarNomeConta } from './core.js';
 
 export const CHAVES = {
   matrix: 'MATRIX_FINANCE_STATE_v2',
@@ -77,6 +77,7 @@ export function lerContexto() {
     atendimentos: lerAtendimentos(),
     agenda: lerAgenda(),
     faturas: lerFaturasLocal(),
+    vencimentos: lerVencimentos(),
     regras: lerRegras()
   };
 }
@@ -131,6 +132,36 @@ export function limparRegras() {
 export function aplicarAjustes({ regras, privacidade } = {}) {
   salvarPreferencia('regras', Array.isArray(regras) ? regras : []);
   if (typeof privacidade === 'boolean') salvarPreferencia('privacidade', privacidade);
+}
+
+/* -------------------------------------------------------------------------
+ * Vencimentos informados à mão — o Matrix só guarda `pago: true/false`.
+ * Chave `nexo_vencimentos`: { "<nome normalizado>": diaDoMês (1..31) }.
+ * ---------------------------------------------------------------------- */
+export function lerVencimentos() {
+  const mapa = lerPreferencia('vencimentos', {});
+  if (!mapa || typeof mapa !== 'object' || Array.isArray(mapa)) return {};
+  const saida = {};
+  Object.keys(mapa).forEach((k) => {
+    const dia = Number(mapa[k]);
+    if (Number.isFinite(dia) && dia >= 1 && dia <= 31) saida[k] = Math.trunc(dia);
+  });
+  return saida;
+}
+
+/** `dia` vazio/0 remove o vencimento daquela conta. */
+export function definirVencimento(nome, dia) {
+  const chave = normalizarNomeConta(nome);
+  if (!chave) return lerVencimentos();
+  const atuais = lerVencimentos();
+  const n = Number(dia);
+  if (!Number.isFinite(n) || n < 1 || n > 31) {
+    delete atuais[chave];
+  } else {
+    atuais[chave] = Math.trunc(n);
+  }
+  salvarPreferencia('vencimentos', atuais);
+  return atuais;
 }
 
 /* Preferências do próprio Nexo (namespace separado — não colide com os apps) */

@@ -42,7 +42,7 @@ python -m http.server 8000
 ## Testes
 
 ```powershell
-node --test test/*.test.js    # 119 testes
+node --test test/*.test.js    # 129 testes
 npm run drift                 # diferenças dono × cópia, separando ajuste de bug
 ```
 
@@ -119,9 +119,10 @@ O Node do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe` (só quando n
 15. **Ordem dos tons é fixa:** `risco > atencao > ok > info` (`PESO_TOM`). `contarAlertas`
     conta só risco + atenção, porque é o número do chip "N alertas".
 16. **"Hoje" só usa data que existe.** `alertas()` lê `history[data][taskId]` do Casa
-    Maracaju, `ft_local_schedules` (data/hora/status) e `creditDate` do satélite. O Matrix
-    **não** guarda vencimento de conta (`pago: true/false` só) — não invente "vence
-    amanhã". Conta parada é item do mês, não alarme.
+    Maracaju, `ft_local_schedules` (data/hora/status), `creditDate` do satélite e os
+    **vencimentos informados à mão** (`nexo_vencimentos`, por nome de conta). O Matrix
+    **não** guarda vencimento (`pago: true/false` só) — conta sem dia informado é
+    "a pagar (sem prazo)", nunca alarme falso.
 17. **Data sempre local.** Use `isoLocal()`/`somarDias()` de `core.js`; `toISOString()`
     desloca o dia no fuso de São Paulo e faz tarefa de hoje virar de ontem.
 18. **Push não existe.** O Nexo não tem servidor: "notificação" aqui é o card "Hoje".
@@ -160,6 +161,11 @@ O Node do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe` (só quando n
     Não troque a mescla por "nuvem sobrescreve": isso apaga escolha feita no celular.
 28. **`em` é obrigatório no merge.** `normalizarRegras()` precisa preservar `em`; sem ele a
     mescla não distingue a versão nova da velha (bug real, coberto por teste).
+29. **Vencimento é digitado, não inferido.** `nexo_vencimentos` guarda
+    `{ "<nome normalizado>": dia 1..31 }` — chave por **nome da conta**, valendo em todo
+    mês; `dataNoMes()` ajusta dia 31 para o último dia do mês. Conta paga é ignorada;
+    conta sem dia é "sem prazo", nunca atrasada. Não deduza vencimento de data de
+    pagamento ou de ordem de lista.
 
 ## Vizinhança
 

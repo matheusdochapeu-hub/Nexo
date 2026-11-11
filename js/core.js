@@ -440,7 +440,8 @@ export function buildSnapshot(input = {}) {
         pendente: pag.pendente,
         qtdPendentes: pag.qtdPendentes,
         pctPago: pag.pctPago,
-        maioresPendentes: pag.pendentes.slice(0, 4)
+        maioresPendentes: pag.pendentes.slice(0, 4),
+        pendentes: pag.pendentes
       },
       receitas,
       gastos: listaPorDono('casa'),
@@ -690,6 +691,20 @@ export function somarDias(d, n) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 }
 
+/** Chave estável de uma conta para guardar o vencimento ("Caronas " → "caronas"). */
+export function normalizarNomeConta(nome) {
+  return normChave(nome);
+}
+
+/** Dia do mês de referência, ajustado ao último dia quando o mês é mais curto. */
+export function dataNoMes(ref, dia) {
+  const ano = ref.getFullYear();
+  const mes = ref.getMonth();
+  const ultimo = new Date(ano, mes + 1, 0).getDate();
+  const d = Math.min(Math.max(1, Math.trunc(Number(dia) || 1)), ultimo);
+  return isoLocal(new Date(ano, mes, d));
+}
+
 function diferencaEmDias(isoA, isoB) {
   // Ambas "YYYY-MM-DD" no fuso local
   const [a1, m1, d1] = String(isoA).split('-').map(Number);
@@ -809,15 +824,94 @@ export function alertas(snapshot, extras = {}) {
 
   /* 4. Contas paradas no mês ----------------------------------------- */
   const caixa = (snapshot && snapshot.casa && snapshot.casa.caixa) || null;
-  if (caixa && caixa.qtdPendentes > 0) {
-    const nomes = arr(caixa.maioresPendentes).map((p) => p.nome).slice(0, 3).join(' · ');
+
+  /* 4a. Vencimentos informados à mão (o Matrix não guarda data) -------- */
+  const vencimentos = extras.vencimentos && typeof extras.vencimentos === 'object' ? extras.vencimentos : {};
+  const diaDe = (nome) => {
+    const r = vencimentos[normalizarNomeConta(nome)];
+    const n = Number(r);
+    return Number.isFinite(n) && n >= 1 && n <= 31 ? n : null;
+  };
+
+  const comPrazo = arr(caixa && caixa.pendentes)
+    .map((p) => {
+      const dia = diaDe(p.nome);
+      if (!dia) return null;
+      const data = dataNoMes(now, dia);
+      return {
+        nome: p.nome,
+        valor: num(p.valor),
+        dia,
+        data,
+        dias: diferencaEmDias(data, hoje)
+      };
+    })
+    .filter(Boolean);
+
+  const vencidas = comPrazo.filter((c) => c.dias < 0);
+  const vencendo = comPrazo.filter((c) => c.dias >= 0 && c.dias <= 3);
+
+  if (vencidas.length) {
+    const total = round2(vencidas.reduce((a, c) => a + c.valor, 0));
+    const maisAntiga = vencidas.reduce((a, c) => (c.dias < a.dias ? c : a), vencidas[0]);
+    saida.push({
+      id: 'contas-vencidas',
+      tipo: 'conta',
+      quando: 'atrasado',
+      titulo: `${vencidas.length} ${vencidas.length === 1 ? 'conta vencida' : 'contas vencidas'}`,
+      texto: '{valor} em aberto — {nomes}. A mais antiga venceu em {data}.',
+      valores: {
+        valor: total,
+        nomes: vencidas.map((c) => c.nome).slice(0, 3).join(' · '),
+        data: maisAntiga.data.slice(8, 10) + '/' + maisAntiga.data.slice(5, 7)
+      }
+    });
+  }
+
+  if (vencendo.length) {
+    const hojeMesmo = vencendo.filter((c) => c.dias === 0);
+    const proximas = vencendo.filter((c) => c.dias > 0);
+    if (hojeMesmo.length) {
+      saida.push({
+        id: 'contas-hoje',
+        tipo: 'conta',
+        quando: 'hoje',
+        titulo: `${hojeMesmo.length} ${hojeMesmo.length === 1 ? 'conta vence' : 'contas vencem'} hoje`,
+        texto: '{nomes} · {valor}.',
+        valores: {
+          nomes: hojeMesmo.map((c) => c.nome).slice(0, 3).join(' · '),
+          valor: round2(hojeMesmo.reduce((a, c) => a + c.valor, 0))
+        }
+      });
+    }
+    if (proximas.length) {
+      const menor = proximas.reduce((a, c) => (c.dias < a.dias ? c : a), proximas[0]);
+      saida.push({
+        id: 'contas-proximas',
+        tipo: 'conta',
+        quando: menor.dias === 1 ? 'amanha' : 'proximo',
+        titulo: `${proximas.length} ${proximas.length === 1 ? 'conta vence' : 'contas vencem'} em até 3 dias`,
+        texto: '{nomes} · {valor}. A próxima é {data}.',
+        valores: {
+          nomes: proximas.map((c) => c.nome).slice(0, 3).join(' · '),
+          valor: round2(proximas.reduce((a, c) => a + c.valor, 0)),
+          data: menor.data.slice(8, 10) + '/' + menor.data.slice(5, 7)
+        }
+      });
+    }
+  }
+
+  /* 4b. Contas sem prazo informado ----------------------------------- */
+  const semPrazo = arr(caixa && caixa.pendentes).filter((p) => !diaDe(p.nome));
+  if (caixa && semPrazo.length > 0) {
+    const nomes = semPrazo.map((p) => p.nome).slice(0, 3).join(' · ');
     saida.push({
       id: 'contas-pendentes',
       tipo: 'conta',
       quando: 'mes',
-      titulo: `${caixa.qtdPendentes} ${caixa.qtdPendentes === 1 ? 'conta' : 'contas'} a pagar no mês`,
-      texto: nomes ? '{valor} pendentes — {nomes}.' : '{valor} pendentes neste mês.',
-      valores: nomes ? { valor: caixa.pendente, nomes } : { valor: caixa.pendente }
+      titulo: `${semPrazo.length} ${semPrazo.length === 1 ? 'conta' : 'contas'} a pagar (sem prazo)`,
+      texto: '{valor} pendentes — {nomes}. Informe o dia em Vencimentos.',
+      valores: { valor: round2(semPrazo.reduce((a, p) => a + num(p.valor), 0)), nomes }
     });
   }
 

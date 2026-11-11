@@ -832,6 +832,35 @@ body[data-privado="1"] .nx-money {
 .nx-input::placeholder {
   color: var(--nx-muted);
 }
+
+/* Vencimento por conta: linha com campo de dia */
+.nx-row--venc {
+  align-items: center;
+}
+
+.nx-input--dia {
+  flex: 0 0 auto;
+  width: 62px;
+  min-height: 40px;
+  padding: 6px 8px;
+  text-align: center;
+  font-size: 13.5px;
+  border: 1px solid var(--nx-line);
+  border-radius: var(--nx-r-sm);
+  background: var(--nx-surface);
+  color: var(--nx-ink);
+}
+
+.nx-input--dia::-webkit-outer-spin-button,
+.nx-input--dia::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.nx-input--dia {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
 .nx-foot {
   margin-top: 26px;
   padding-top: 16px;
