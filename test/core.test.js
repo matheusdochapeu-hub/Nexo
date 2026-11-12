@@ -505,3 +505,56 @@ test('cartões: sem o mês no mapa, cai no escalar de reserva', () => {
   const s = buildSnapshot({ matrix: st, now: AGORA });
   assert.equal(s.casa.cartoes.futuras, 1568.05);
 });
+
+/* ---------------------------------------------------- Scarlet: caixa M+1 */
+function matrixComGanhos(mapa) {
+  return {
+    anos: {
+      2026: {
+        Novembro: {
+          fixos: [],
+          outros: [],
+          diarios: [],
+          receitas: [],
+          scarlet: { gastos: [] }
+        }
+      }
+    },
+    satellites: { fisioflow: { ganhosPorMes: mapa } }
+  };
+}
+
+test('scarlet: o caixa do mês é o trabalho do mês anterior', () => {
+  const s = buildSnapshot({
+    matrix: matrixComGanhos({
+      '2026-10': { realizado: 1800, aReceber: 200 },
+      '2026-11': { realizado: 0, aReceber: 2500 }
+    }),
+    now: AGORA
+  });
+  assert.equal(s.scarlet.ganhos, 2000, 'outubro é o que cai em novembro');
+  assert.equal(s.scarlet.ganhosDe, '2026-10');
+  assert.equal(s.scarlet.emProducao, 2500, 'novembro só entra no mês que vem');
+  assert.equal(s.scarlet.recebido, 1800);
+  assert.equal(s.scarlet.aReceber, 200);
+});
+
+test('scarlet: sem o mês anterior, usa o mês corrente como antes', () => {
+  const s = buildSnapshot({
+    matrix: matrixComGanhos({ '2026-11': { realizado: 0, aReceber: 2500 } }),
+    now: AGORA
+  });
+  assert.equal(s.scarlet.ganhos, 2500);
+  assert.equal(s.scarlet.ganhosDe, '2026-11');
+});
+
+test('scarlet: janeiro recebe o trabalho de dezembro (vira o ano)', () => {
+  const st = matrixComGanhos({
+    '2026-12': { realizado: 900, aReceber: 100 },
+    '2027-01': { realizado: 0, aReceber: 0 }
+  });
+  st.anos = { 2027: { Janeiro: { fixos: [], outros: [], diarios: [], receitas: [], scarlet: { gastos: [] } } } };
+  const s = buildSnapshot({ matrix: st, now: new Date('2027-01-15T12:00:00-03:00') });
+  assert.equal(s.scarlet.ganhos, 1000);
+  assert.equal(s.scarlet.ganhosDe, '2026-12');
+});

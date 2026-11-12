@@ -430,6 +430,25 @@ function viewMatheus(s) {
   return `<div class="nx-grid">${pecas.join('')}</div>`;
 }
 
+const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+/** "2026-10" → "out/2026" */
+function rotuloYm(ym) {
+  const texto = String(ym || '');
+  const mes = Number(texto.slice(5, 7));
+  return mes >= 1 && mes <= 12 ? MESES_CURTOS[mes - 1] + '/' + texto.slice(0, 4) : '';
+}
+
+/** "2026-10" → "nov/2026" (o pagamento cai no mês seguinte) */
+function proximoDe(ym) {
+  const texto = String(ym || '');
+  const ano = Number(texto.slice(0, 4));
+  const mes = Number(texto.slice(5, 7));
+  if (!ano || !mes) return '';
+  const d = new Date(ano, mes, 1);
+  return rotuloYm(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+}
+
 function viewScarlet(s) {
   const sc = s.scarlet;
   const temDados = sc.ganhos !== null || sc.cartao !== null;
@@ -439,7 +458,7 @@ function viewScarlet(s) {
     'Seu mês',
     `${esc(s.periodo.mes)} de ${s.periodo.ano}`,
     `<div class="nx-hero-bloco">
-      ${heroKpi('Ganhos', money(sc.ganhos), sc.fonte === 'matrix' ? 'via Matrix' : 'atendimentos')}
+      ${heroKpi('Ganhos', money(sc.ganhos), sc.ganhosDe ? 'trabalho de ' + rotuloYm(sc.ganhosDe) : (sc.fonte === 'matrix' ? 'via Matrix' : 'atendimentos'))}
       <div class="nx-kpis">
         ${kpi('Recebido', money(sc.recebido), 'já em caixa')}
         ${kpi('A receber', money(sc.aReceber), 'pendente')}
@@ -449,16 +468,20 @@ function viewScarlet(s) {
   ));
 
   pecas.push(card(
-    'Atendimentos',
-    'Seu volume do mês',
+    'Em produção',
+    sc.producaoDe ? 'trabalho de ' + rotuloYm(sc.producaoDe) + ' · cai em ' + proximoDe(sc.producaoDe) : 'seu volume do mês',
     `<div class="nx-kpis">
       ${kpi('Sessões', sc.sessoes === null ? '—' : INTEIRO.format(sc.sessoes), 'neste mês')}
       ${kpi('Pacientes', sc.pacientes === null ? '—' : INTEIRO.format(sc.pacientes), 'ativos')}
     </div>
     <ul class="nx-list">
       <li class="nx-row">
-        <span class="nx-row-nome">Ticket médio</span>
-        <span class="nx-row-val">${sc.sessoes && sc.ganhos ? money(sc.ganhos / sc.sessoes) : '—'}</span>
+        <span class="nx-row-nome">Valor em produção</span>
+        <span class="nx-row-val">${money(sc.emProducao)}</span>
+      </li>
+      <li class="nx-row">
+        <span class="nx-row-nome">Ticket médio (produção)</span>
+        <span class="nx-row-val">${sc.sessoes && sc.ganhos ? money(sc.emProducao / sc.sessoes) : '—'}</span>
       </li>
     </ul>`
   ));

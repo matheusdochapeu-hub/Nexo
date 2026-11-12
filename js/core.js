@@ -343,6 +343,15 @@ function cartoes(sat, month, now, local, base) {
 /* -------------------------------------------------------------------------
  * TRABALHO (Atendimentos da Scarlet) — satélite > lançamentos locais.
  * ---------------------------------------------------------------------- */
+
+/** "2026-11" → "2026-10" */
+function mesAnteriorDe(ym) {
+  const [ano, mes] = String(ym || '').split('-').map(Number);
+  if (!ano || !mes) return '';
+  const d = new Date(ano, mes - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 function trabalho(sat, atendimentos, ym, now) {
   const ff = sat && sat.fisioflow;
   if (ff && ff.ganhosPorMes && (ff.mesAtualTotal || ff.ganhosPorMes[ym])) {
@@ -445,9 +454,20 @@ export function buildSnapshot(input = {}) {
   const beneficio = beneficios(sat, maracaju, now);
   const trab = trabalho(sat, atendimentos, ym, now);
 
-  const scarletGanhos = trab
-    ? trab.recebido + trab.aReceber
-    : (month && month.scarlet ? num(month.scarlet.ganhos) : null);
+  /* Scarlet recebe com um mês de atraso: o que ela trabalha em outubro cai em
+     novembro. Então o dinheiro DESTE mês é o trabalho do mês ANTERIOR; o trabalho
+     do mês corrente aparece como "em produção", fora do caixa. */
+  const ymAnterior = mesAnteriorDe(ym);
+  const trabAnterior = trabalho(sat, atendimentos, ymAnterior, now);
+  const total = (t) => (t ? round2(num(t.recebido) + num(t.aReceber)) : null);
+
+  const scarletGanhos = trabAnterior
+    ? total(trabAnterior)
+    : trab
+      ? total(trab)
+      : month && month.scarlet
+        ? num(month.scarlet.ganhos)
+        : null;
 
   const avisos = [];
   if (!matrix) avisos.push('Matrix ainda não abriu neste navegador.');
@@ -455,7 +475,7 @@ export function buildSnapshot(input = {}) {
   if (picked.fallback) avisos.push(`Usando ${picked.ano} — não há ${label}/${ano} lançado.`);
   if (beneficio && beneficio.velho) avisos.push('Saldo de VA/VR desatualizado.');
   if (cartao && cartao.velho) avisos.push('Fatura desatualizada.');
-  if (!trab) avisos.push('Atendimentos sem dados neste aparelho.');
+  if (!trab && !trabAnterior) avisos.push('Atendimentos sem dados neste aparelho.');
 
   return {
     geradoEm: now.toISOString(),
@@ -504,8 +524,11 @@ export function buildSnapshot(input = {}) {
     },
     scarlet: {
       ganhos: scarletGanhos,
-      recebido: trab ? trab.recebido : null,
-      aReceber: trab ? trab.aReceber : null,
+      ganhosDe: trabAnterior ? ymAnterior : trab ? ym : null,
+      emProducao: trab ? total(trab) : null,
+      producaoDe: trab ? ym : null,
+      recebido: (trabAnterior || trab) ? (trabAnterior || trab).recebido : null,
+      aReceber: (trabAnterior || trab) ? (trabAnterior || trab).aReceber : null,
       sessoes: trab ? trab.sessoes : null,
       pacientes: trab ? trab.pacientes : null,
       cartao: cartao.scarlet,
