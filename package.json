@@ -1,6 +1,6 @@
 {
   "name": "nexo-casa",
-  "version": "0.16.1",
+  "version": "0.16.2",
   "private": true,
   "type": "module",
   "description": "Nexo — camada unificada dos apps Matrix, Casa Maracaju, Faturas e Atendimentos. Fase 1: shell Casa / Matheus / Scarlet.",
