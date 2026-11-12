@@ -3,7 +3,7 @@
  * Versão do app e catálogo dos 4 aplicativos.
  */
 
-export const VERSION = '0.16.0';
+export const VERSION = '0.16.1';
 
 /**
  * `local`  → caminho relativo quando tudo roda do mesmo servidor (dev).

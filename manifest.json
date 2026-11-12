@@ -2,19 +2,36 @@
   "name": "Nexo — Casa, Matheus & Scarlet",
   "short_name": "Nexo",
   "description": "Uma casa, três olhares: caixa, cartões, benefícios e trabalho dos quatro apps em um só lugar.",
-  "id": "./",
+  "id": "/Nexo/",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "background_color": "#F6F5F1",
   "theme_color": "#1E5C4A",
   "lang": "pt-BR",
   "dir": "ltr",
   "orientation": "portrait-primary",
-  "categories": ["finance", "productivity", "lifestyle"],
+  "categories": [
+    "finance",
+    "productivity",
+    "lifestyle"
+  ],
   "icons": [
-    { "src": "icons/nexo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "icons/nexo-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    {
+      "src": "icons/nexo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/nexo-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
   ]
 }
