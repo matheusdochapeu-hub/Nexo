@@ -520,7 +520,7 @@ function launcher(s) {
   return APPS.map((app) => {
     const [tom, texto] = status[app.id] || ['', ''];
     const inicial = app.nome.charAt(0);
-    return `<a class="nx-dock-item" href="${esc(urlDoApp(app))}" title="${esc(app.papel)} · ${esc(texto)}">
+    return `<a class="nx-dock-item" href="${esc(urlDoApp(app))}" target="_blank" rel="noopener" title="${esc(app.papel)} · ${esc(texto)}">
       <span class="nx-dock-icone" style="background:${esc(app.cor)}" aria-hidden="true">${esc(inicial)}</span>
       <span class="nx-dock-nome">${esc(app.nome)}</span>
       <span class="nx-dot${tom ? ` nx-dot--${tom}` : ''}" aria-hidden="true"></span>
