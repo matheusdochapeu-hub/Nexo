@@ -791,46 +791,48 @@ export function alertas(snapshot, extras = {}) {
   const maracaju = extras.maracaju || {};
   const agenda = arr(extras.agenda);
 
-  /* 1. Tarefas do lar ------------------------------------------------ */
-  const tarefas = arr(maracaju.tasks);
-  const historico = maracaju.history && typeof maracaju.history === 'object' ? maracaju.history : {};
+  /* 1. Tarefas do lar (suprimidas por padrão; reativar com extras.incluirTarefas = true) */
+  if (extras.incluirTarefas === true) {
+    const tarefas = arr(maracaju.tasks);
+    const historico = maracaju.history && typeof maracaju.history === 'object' ? maracaju.history : {};
 
-  const feitasEm = (dataIso) => {
-    const dia = historico[dataIso] || {};
-    return Object.keys(dia).filter((id) => dia[id] && dia[id].done);
-  };
+    const feitasEm = (dataIso) => {
+      const dia = historico[dataIso] || {};
+      return Object.keys(dia).filter((id) => dia[id] && dia[id].done);
+    };
 
-  const feitasHoje = new Set(feitasEm(hoje));
-  const feitasNaSemana = new Set();
-  for (let i = 0; i <= 6; i++) {
-    feitasEm(isoLocal(somarDias(now, -i))).forEach((id) => feitasNaSemana.add(id));
-  }
+    const feitasHoje = new Set(feitasEm(hoje));
+    const feitasNaSemana = new Set();
+    for (let i = 0; i <= 6; i++) {
+      feitasEm(isoLocal(somarDias(now, -i))).forEach((id) => feitasNaSemana.add(id));
+    }
 
-  const diarias = tarefas.filter((t) => String(t.frequency || '').toLowerCase() === 'diaria');
-  const pendentesHoje = diarias.filter((t) => !feitasHoje.has(t.id));
-  const semanais = tarefas.filter((t) => String(t.frequency || '').toLowerCase() === 'semanal');
-  const pendentesSemana = semanais.filter((t) => !feitasNaSemana.has(t.id));
+    const diarias = tarefas.filter((t) => String(t.frequency || '').toLowerCase() === 'diaria');
+    const pendentesHoje = diarias.filter((t) => !feitasHoje.has(t.id));
+    const semanais = tarefas.filter((t) => String(t.frequency || '').toLowerCase() === 'semanal');
+    const pendentesSemana = semanais.filter((t) => !feitasNaSemana.has(t.id));
 
-  if (pendentesHoje.length) {
-    saida.push({
-      id: 'tarefas-hoje',
-      tipo: 'tarefa',
-      quando: 'hoje',
-      titulo: `${pendentesHoje.length} ${pendentesHoje.length === 1 ? 'tarefa do lar' : 'tarefas do lar'} hoje`,
-      texto: '{nomes}',
-      valores: { nomes: pendentesHoje.map((t) => t.title).slice(0, 3).join(' · ') }
-    });
-  }
+    if (pendentesHoje.length) {
+      saida.push({
+        id: 'tarefas-hoje',
+        tipo: 'tarefa',
+        quando: 'hoje',
+        titulo: `${pendentesHoje.length} ${pendentesHoje.length === 1 ? 'tarefa do lar' : 'tarefas do lar'} hoje`,
+        texto: '{nomes}',
+        valores: { nomes: pendentesHoje.map((t) => t.title).slice(0, 3).join(' · ') }
+      });
+    }
 
-  if (pendentesSemana.length) {
-    saida.push({
-      id: 'tarefas-semana',
-      tipo: 'tarefa',
-      quando: 'atrasado',
-      titulo: `${pendentesSemana.length} ${pendentesSemana.length === 1 ? 'tarefa semanal' : 'tarefas semanais'} sem fazer há 7 dias`,
-      texto: '{nomes}',
-      valores: { nomes: pendentesSemana.map((t) => t.title).slice(0, 3).join(' · ') }
-    });
+    if (pendentesSemana.length) {
+      saida.push({
+        id: 'tarefas-semana',
+        tipo: 'tarefa',
+        quando: 'atrasado',
+        titulo: `${pendentesSemana.length} ${pendentesSemana.length === 1 ? 'tarefa semanal' : 'tarefas semanais'} sem fazer há 7 dias`,
+        texto: '{nomes}',
+        valores: { nomes: pendentesSemana.map((t) => t.title).slice(0, 3).join(' · ') }
+      });
+    }
   }
 
   /* 2. Atendimentos da Scarlet --------------------------------------- */

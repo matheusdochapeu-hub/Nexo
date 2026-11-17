@@ -86,23 +86,29 @@ test('sem nada, não inventa alerta', () => {
   assert.deepEqual(soSnapshot.map((x) => x.id), ['recarga-beneficio', 'contas-pendentes']);
 });
 
-test('tarefas: só as diárias não feitas hoje entram', () => {
+test('tarefas: suprimidas por padrão no Hoje', () => {
   const { snapshot, extras } = cenario();
-  const a = alertas(snapshot, extras).find((x) => x.id === 'tarefas-hoje');
+  const lista = alertas(snapshot, extras);
+  assert.ok(!lista.some((x) => x.tipo === 'tarefa'));
+});
+
+test('tarefas: só as diárias não feitas hoje entram (quando incluirTarefas=true)', () => {
+  const { snapshot, extras } = cenario();
+  const a = alertas(snapshot, { ...extras, incluirTarefas: true }).find((x) => x.id === 'tarefas-hoje');
   assert.equal(a.titulo, '1 tarefa do lar hoje');
   assert.equal(a.valores.nomes, 'Lavar a louça');
 });
 
-test('tarefas: semanal sem fazer há 7 dias vira atraso', () => {
+test('tarefas: semanal sem fazer há 7 dias vira atraso (quando incluirTarefas=true)', () => {
   const { snapshot, extras } = cenario();
-  const a = alertas(snapshot, extras).find((x) => x.id === 'tarefas-semana');
+  const a = alertas(snapshot, { ...extras, incluirTarefas: true }).find((x) => x.id === 'tarefas-semana');
   assert.equal(a.quando, 'atrasado');
   assert.equal(a.valores.nomes, 'Lavar roupa de cama');
 });
 
-test('tarefas: feita dentro da semana não aparece', () => {
+test('tarefas: feita dentro da semana não aparece (quando incluirTarefas=true)', () => {
   const { snapshot, extras } = cenario();
-  const a = alertas(snapshot, extras).find((x) => x.id === 'tarefas-semana');
+  const a = alertas(snapshot, { ...extras, incluirTarefas: true }).find((x) => x.id === 'tarefas-semana');
   assert.ok(!a.valores.nomes.includes('Passar pano'));
 });
 
@@ -143,8 +149,8 @@ test('contas pendentes entram como item do mês', () => {
 test('ordem: atrasado, hoje, amanhã, próximo, mês', () => {
   const { snapshot, extras } = cenario();
   assert.deepEqual(
-    alertas(snapshot, extras).map((x) => x.id),
-    ['tarefas-semana', 'tarefas-hoje', 'atendimentos-hoje', 'atendimentos-amanha', 'recarga-beneficio', 'contas-pendentes']
+    alertas(snapshot, { ...extras, vencimentos: { energia: 5 } }).map((x) => x.id),
+    ['contas-vencidas', 'atendimentos-hoje', 'atendimentos-amanha', 'recarga-beneficio']
   );
 });
 
