@@ -281,6 +281,11 @@ a {
   animation: nx-in 0.22s ease both;
 }
 
+.nx-view[hidden],
+#view[hidden] {
+  display: none;
+}
+
 @keyframes nx-in {
   from {
     opacity: 0;
@@ -751,15 +756,12 @@ body[data-privado="1"] .nx-money {
   white-space: nowrap;
 }
 
-/* ---------------------------------------------------------------- rodapé */
+/* ---------------------------------------------------------------- ajustes */
 .nx-ajustes {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid var(--nx-line);
 }
 
 .nx-ajustes-rotulo {
@@ -824,8 +826,11 @@ body[data-privado="1"] .nx-money {
   color: var(--nx-ink-2);
 }
 
-/* ------------------------------------------------------------------ nuvem */.nx-nuvem {
-  margin-top: 14px;
+/* ------------------------------------------------------------------ nuvem */
+.nx-nuvem {
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--nx-line);
   display: flex;
   flex-wrap: wrap;
   gap: 8px;

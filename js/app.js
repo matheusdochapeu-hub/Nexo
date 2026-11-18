@@ -25,7 +25,8 @@ const INTEIRO = new Intl.NumberFormat('pt-BR');
 const VIEWS = [
   { id: 'casa', nome: 'Casa', emoji: '🏡' },
   { id: 'matheus', nome: 'Matheus', emoji: '🧑🏻' },
-  { id: 'scarlet', nome: 'Scarlet', emoji: '👩🏻' }
+  { id: 'scarlet', nome: 'Scarlet', emoji: '👩🏻' },
+  { id: 'ajustes', nome: 'Ajustes', emoji: '⚙️' }
 ];
 
 let snapshot = null;
@@ -907,15 +908,21 @@ function render() {
   const semNada = !snapshot.fontes.matrix && !snapshot.fontes.atendimentos && !snapshot.casa.beneficios;
   $('#periodo').textContent = `${snapshot.periodo.mes} de ${snapshot.periodo.ano}`;
 
-  const corpo = semNada
-    ? viewVazia(snapshot)
-    : viewAtual === 'casa'
-      ? viewCasa(snapshot)
-      : viewAtual === 'matheus'
-        ? viewMatheus(snapshot)
-        : viewScarlet(snapshot);
+  const ehAjustes = viewAtual === 'ajustes';
+  const corpo = ehAjustes
+    ? ''
+    : semNada
+      ? viewVazia(snapshot)
+      : viewAtual === 'casa'
+        ? viewCasa(snapshot)
+        : viewAtual === 'matheus'
+          ? viewMatheus(snapshot)
+          : viewScarlet(snapshot);
 
   $('#view').innerHTML = corpo;
+  $('#view').hidden = ehAjustes;
+  const painelAjustes = $('#painel-ajustes');
+  if (painelAjustes) painelAjustes.hidden = !ehAjustes;
   $('#launcher').innerHTML = launcher(snapshot);
   atualizarFontesNuvem();
   renderAjustes();
