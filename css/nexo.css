@@ -222,7 +222,7 @@ a {
 .nx-topo {
   position: sticky;
   top: 0;
-  z-index: 25;
+  z-index: 30;
   background: var(--nx-bg);
   padding-top: 4px;
   padding-bottom: 2px;
@@ -234,7 +234,7 @@ a {
 
 /* ------------------------------------------------------------------ abas */
 .nx-tabs {
-  position: static;
+  position: relative;
   display: flex;
   gap: 4px;
   padding: 4px;
@@ -259,9 +259,18 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  transition: background 0.18s ease, color 0.18s ease;
+  gap: 6px;
+  transition: background 0.2s cubic-bezier(0.22, 1, 0.36, 1), color 0.18s ease, transform 0.14s ease;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.nx-tab:active {
+  transform: scale(0.97);
 }
 
 .nx-tab[aria-selected="true"] {
@@ -274,27 +283,74 @@ a {
   line-height: 1;
 }
 
+/* ----------------------------------------------------- palco & carrossel */
+.nx-carrossel-palco {
+  position: relative;
+  overflow-x: clip;
+  min-width: 0;
+}
+
 /* ---------------------------------------------------------------- cartões */
 .nx-view {
   display: grid;
   gap: var(--nx-gap);
-  animation: nx-in 0.22s ease both;
+  touch-action: pan-y;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  animation: nx-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.nx-view.nx-slide-next {
+  animation: nx-carrossel-next 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.nx-view.nx-slide-prev {
+  animation: nx-carrossel-prev 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .nx-view[hidden],
 #view[hidden] {
-  display: none;
+  display: none !important;
 }
 
 @keyframes nx-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translate3d(0, 6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes nx-carrossel-next {
+  from {
+    opacity: 0.15;
+    transform: translate3d(34px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes nx-carrossel-prev {
+  from {
+    opacity: 0.15;
+    transform: translate3d(-34px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nx-view {
+  .nx-view,
+  .nx-view.nx-slide-next,
+  .nx-view.nx-slide-prev {
     animation: none;
   }
 }
@@ -335,6 +391,11 @@ a {
   min-width: 0;
 }
 
+.nx-card-head > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .nx-card-title {
   font-size: 12px;
   font-weight: 650;
@@ -348,9 +409,11 @@ a {
   font-size: 13px;
   color: var(--nx-muted);
   margin: 2px 0 0;
+  overflow-wrap: anywhere;
 }
 
 .nx-card-head .nx-chip {
+  flex: 0 0 auto;
   margin-left: auto;
 }
 
@@ -461,7 +524,8 @@ body[data-privado="1"] .nx-money {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 4px 8px;
   font-size: 13px;
   color: var(--nx-ink-2);
   min-width: 0;

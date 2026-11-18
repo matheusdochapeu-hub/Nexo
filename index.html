@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./icons/nexo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="./icons/nexo.svg">
-<link rel="stylesheet" href="./css/nexo.css?v=0.19.0">
+<link rel="stylesheet" href="./css/nexo.css?v=0.19.1">
 </head>
 <body data-privado="0">
 
@@ -57,24 +57,32 @@
 
   <div id="avisos" hidden></div>
 
-  <main id="view" role="tabpanel" aria-live="polite"></main>
+  <div class="nx-carrossel-palco" id="carrossel-palco">
+    <main id="view" class="nx-view" role="tabpanel" aria-live="polite"></main>
 
-  <div id="painel-ajustes" class="nx-view" hidden>
-    <article class="nx-card nx-card--largo">
-      <div id="ajustes" class="nx-ajustes"></div>
-
-      <div class="nx-nuvem">
-        <p class="nx-ajustes-rotulo">Nuvem · Apps Script (opcional)</p>
-        <div class="nx-nuvem-linha">
-          <input id="sync-url" class="nx-input" type="url" inputmode="url" autocomplete="off" spellcheck="false"
-                 placeholder="URL do App da Web (/exec)" aria-label="URL do Apps Script">
-          <input id="sync-token" class="nx-input" type="password" autocomplete="off"
-                 placeholder="Token secreto" aria-label="Token do Apps Script">
+    <div id="painel-ajustes" class="nx-view" role="tabpanel" hidden>
+      <article class="nx-card nx-card--largo">
+        <div class="nx-card-head">
+          <div>
+            <h2 class="nx-card-title">Ajustes e Regras</h2>
+            <p class="nx-card-sub">Backup das atribuições de gastos e sincronização entre aparelhos</p>
+          </div>
         </div>
-        <button class="nx-btn nx-btn--mini" id="sync-btn" type="button">Sincronizar ajustes</button>
-        <p class="nx-ajustes-nota" id="sync-nota">Opcional. Com URL e token, suas regras viajam entre aparelhos.</p>
-      </div>
-    </article>
+        <div id="ajustes" class="nx-ajustes"></div>
+
+        <div class="nx-nuvem">
+          <p class="nx-ajustes-rotulo">Nuvem · Apps Script (opcional)</p>
+          <div class="nx-nuvem-linha">
+            <input id="sync-url" class="nx-input" type="url" inputmode="url" autocomplete="off" spellcheck="false"
+                   placeholder="URL do App da Web (/exec)" aria-label="URL do Apps Script">
+            <input id="sync-token" class="nx-input" type="password" autocomplete="off"
+                   placeholder="Token secreto" aria-label="Token do Apps Script">
+          </div>
+          <button class="nx-btn nx-btn--mini" id="sync-btn" type="button">Sincronizar ajustes</button>
+          <p class="nx-ajustes-nota" id="sync-nota">Opcional. Com URL e token, suas regras viajam entre aparelhos.</p>
+        </div>
+      </article>
+    </div>
   </div>
 
   <footer class="nx-foot">
@@ -99,6 +107,6 @@
   </section>
 </div>
 
-<script type="module" src="./js/app.js?v=0.19.0"></script>
+<script type="module" src="./js/app.js?v=0.19.1"></script>
 </body>
 </html>

@@ -600,6 +600,15 @@ function launcher(s) {
 
 /* ------------------------------------------------------------------ busca */
 let indiceBusca = null;
+let buscaAbertaEm = 0;
+let ultimoModalTransicaoEm = 0;
+let ultimoGestoArrasteEm = 0;
+let buscaNoHistorico = false;
+
+function modalAberto() {
+  const painel = $('#busca');
+  return Boolean((painel && !painel.hidden) || document.body.classList.contains('nx-travado'));
+}
 
 function indice() {
   if (!indiceBusca) indiceBusca = construirIndice(lerBruto());
@@ -651,20 +660,41 @@ function renderBusca(consulta) {
 function abrirBusca() {
   const painel = $('#busca');
   if (!painel || !painel.hidden) return;
+  buscaAbertaEm = Date.now();
+  ultimoModalTransicaoEm = buscaAbertaEm;
   indiceBusca = construirIndice(lerBruto());
   painel.hidden = false;
   document.body.classList.add('nx-travado');
+  if (!buscaNoHistorico && window.history && typeof window.history.pushState === 'function') {
+    try {
+      window.history.pushState({ nexoModal: 'busca' }, '', window.location.href);
+      buscaNoHistorico = true;
+    } catch {
+      /* file:// pode bloquear history */
+    }
+  }
   const input = $('#busca-input');
   input.value = '';
   renderBusca('');
   requestAnimationFrame(() => input.focus());
 }
 
-function fecharBusca() {
+function fecharBusca(viaPopState = false) {
   const painel = $('#busca');
   if (!painel || painel.hidden) return;
+  ultimoModalTransicaoEm = Date.now();
   painel.hidden = true;
   document.body.classList.remove('nx-travado');
+  if (buscaNoHistorico) {
+    buscaNoHistorico = false;
+    if (!viaPopState && window.history && window.history.state && window.history.state.nexoModal === 'busca') {
+      try {
+        window.history.back();
+      } catch {
+        /* ignore */
+      }
+    }
+  }
   $('#btn-busca')?.focus();
 }
 
@@ -946,6 +976,30 @@ function render() {
   atualizarAbas();
 }
 
+function painelAtivoEl() {
+  return viewAtual === 'ajustes' ? $('#painel-ajustes') : $('#view');
+}
+
+function limparTransformPainel(el) {
+  if (!el) return;
+  el.style.transition = '';
+  el.style.transform = '';
+  el.style.opacity = '';
+}
+
+function aplicarAnimacaoCarrossel(el, dir) {
+  if (!el || !dir) return;
+  el.classList.remove('nx-slide-next', 'nx-slide-prev');
+  // Força reflow leve para reiniciar a animação se trocar duas vezes seguidas na mesma direção
+  void el.offsetWidth;
+  const classe = dir === 'prev' ? 'nx-slide-prev' : 'nx-slide-next';
+  el.classList.add(classe);
+  clearTimeout(el._timerSlide);
+  el._timerSlide = setTimeout(() => {
+    el.classList.remove('nx-slide-next', 'nx-slide-prev');
+  }, 270);
+}
+
 function atualizarAbas() {
   document.querySelectorAll('.nx-tab').forEach((btn) => {
     btn.setAttribute('aria-selected', String(btn.dataset.view === viewAtual));
@@ -955,6 +1009,14 @@ function atualizarAbas() {
 
 function trocarView(id, opts = {}) {
   if (!VIEWS.some((v) => v.id === id)) return;
+  const antigoIdx = VIEWS.findIndex((v) => v.id === viewAtual);
+  const novoIdx = VIEWS.findIndex((v) => v.id === id);
+  const mudou = id !== viewAtual;
+  const dir = opts.dir || (mudou && antigoIdx !== -1 && novoIdx !== -1 ? (novoIdx > antigoIdx ? 'next' : 'prev') : null);
+
+  limparTransformPainel($('#view'));
+  limparTransformPainel($('#painel-ajustes'));
+
   viewAtual = id;
   if (opts.hash !== false) {
     try {
@@ -964,7 +1026,219 @@ function trocarView(id, opts = {}) {
     }
   }
   render();
+  if (mudou && dir) {
+    aplicarAnimacaoCarrossel(painelAtivoEl(), dir);
+    if (window.scrollY > 140) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
   if (opts.foco) document.querySelector(`.nx-tab[data-view="${id}"]`)?.focus();
+}
+
+/* ------------------------------------------- carrossel touch & anti-fantasma */
+function iniciarCarrosselAbas() {
+  const palco = $('#carrossel-palco') || document.body;
+  if (!palco) return;
+
+  let startX = 0;
+  let startY = 0;
+  let currentX = 0;
+  let startTime = 0;
+  let rastreando = false;
+  let arrasteHorizontal = false;
+  let painelArrastado = null;
+  let rafId = 0;
+
+  palco.addEventListener(
+    'touchstart',
+    (ev) => {
+      if (!ev.touches || ev.touches.length !== 1) return;
+      if (modalAberto()) return;
+
+      const alvo = ev.target;
+      if (!alvo || !alvo.closest) return;
+      if (alvo.closest('input, textarea, select, a, [data-prevent-swipe], #topo, .nx-top, .nx-busca')) {
+        return;
+      }
+
+      const t = ev.touches[0];
+      startX = t.clientX;
+      startY = t.clientY;
+      currentX = startX;
+      startTime = Date.now();
+      rastreando = true;
+      arrasteHorizontal = false;
+      painelArrastado = painelAtivoEl();
+    },
+    { passive: true }
+  );
+
+  palco.addEventListener(
+    'touchmove',
+    (ev) => {
+      if (!rastreando || !ev.touches || ev.touches.length !== 1 || !painelArrastado) return;
+      if (modalAberto()) {
+        rastreando = false;
+        limparTransformPainel(painelArrastado);
+        return;
+      }
+
+      const t = ev.touches[0];
+      currentX = t.clientX;
+      const deltaX = currentX - startX;
+      const deltaY = t.clientY - startY;
+
+      if (Math.hypot(deltaX, deltaY) > 10) {
+        ultimoGestoArrasteEm = Date.now();
+      }
+
+      if (!arrasteHorizontal) {
+        if (Math.abs(deltaX) > 12 && Math.abs(deltaX) > Math.abs(deltaY) * 1.25) {
+          arrasteHorizontal = true;
+          painelArrastado.classList.remove('nx-slide-next', 'nx-slide-prev');
+        } else if (Math.abs(deltaY) > 12) {
+          rastreando = false;
+          return;
+        }
+      }
+
+      if (arrasteHorizontal) {
+        const idx = VIEWS.findIndex((v) => v.id === viewAtual);
+        const nasBordas = (idx === 0 && deltaX > 0) || (idx === VIEWS.length - 1 && deltaX < 0);
+        const fator = nasBordas ? 0.24 : 0.88;
+        const deslocamento = deltaX * fator;
+        const opacidade = Math.max(0.76, 1 - Math.abs(deslocamento) / 620);
+
+        if (rafId) cancelAnimationFrame(rafId);
+        const el = painelArrastado;
+        rafId = requestAnimationFrame(() => {
+          if (!el) return;
+          el.style.transition = 'none';
+          el.style.transform = `translate3d(${deslocamento.toFixed(1)}px, 0, 0)`;
+          el.style.opacity = opacidade.toFixed(3);
+        });
+      }
+    },
+    { passive: true }
+  );
+
+  const finalizarToque = (ev) => {
+    if (!rastreando) return;
+    rastreando = false;
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = 0;
+    }
+
+    const painel = painelArrastado;
+    painelArrastado = null;
+    if (!arrasteHorizontal || !painel) return;
+
+    ultimoGestoArrasteEm = Date.now();
+    const endX = ev.changedTouches && ev.changedTouches.length ? ev.changedTouches[0].clientX : currentX;
+    const deltaX = endX - startX;
+    const duracao = Math.max(1, Date.now() - startTime);
+    const velocidade = Math.abs(deltaX) / duracao;
+
+    const idx = VIEWS.findIndex((v) => v.id === viewAtual);
+    const ehSwipe =
+      (Math.abs(deltaX) >= 44 && duracao <= 560) ||
+      (Math.abs(deltaX) >= 24 && velocidade >= 0.32);
+
+    if (ehSwipe && deltaX < 0 && idx < VIEWS.length - 1) {
+      painel.style.transition = 'transform 0.11s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.11s ease';
+      painel.style.transform = 'translate3d(-42px, 0, 0)';
+      painel.style.opacity = '0';
+      setTimeout(() => {
+        trocarView(VIEWS[idx + 1].id, { dir: 'next' });
+      }, 95);
+      return;
+    }
+
+    if (ehSwipe && deltaX > 0 && idx > 0) {
+      painel.style.transition = 'transform 0.11s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.11s ease';
+      painel.style.transform = 'translate3d(42px, 0, 0)';
+      painel.style.opacity = '0';
+      setTimeout(() => {
+        trocarView(VIEWS[idx - 1].id, { dir: 'prev' });
+      }, 95);
+      return;
+    }
+
+    painel.style.transition = 'transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease';
+    painel.style.transform = 'translate3d(0, 0, 0)';
+    painel.style.opacity = '1';
+    setTimeout(() => limparTransformPainel(painel), 230);
+  };
+
+  palco.addEventListener('touchend', finalizarToque, { passive: true });
+  palco.addEventListener('touchcancel', finalizarToque, { passive: true });
+}
+
+function protegerModaisEToquesFantasmas() {
+  let pointerDownAlvo = null;
+
+  window.addEventListener(
+    'mousedown',
+    (ev) => {
+      pointerDownAlvo = ev.target;
+    },
+    true
+  );
+
+  window.addEventListener(
+    'touchstart',
+    (ev) => {
+      pointerDownAlvo = ev.target;
+    },
+    { passive: true, capture: true }
+  );
+
+  /* Escudo global na fase de captura: bloqueia cliques fantasmas após swipe ou abertura/fechamento de modal */
+  window.addEventListener(
+    'click',
+    (ev) => {
+      const agora = Date.now();
+      if (agora - ultimoGestoArrasteEm < 380) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        ev.stopImmediatePropagation();
+        return;
+      }
+      if (agora - ultimoModalTransicaoEm < 320 && !ev.target.closest?.('#busca-input')) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        ev.stopImmediatePropagation();
+      }
+    },
+    true
+  );
+
+  /* Impede que toques/cliques dentro da caixa do modal vazem para o fundo escuro */
+  const dialogoBusca = document.querySelector('.nx-busca-painel');
+  if (dialogoBusca) {
+    dialogoBusca.addEventListener('click', (ev) => ev.stopPropagation());
+    dialogoBusca.addEventListener('mousedown', (ev) => ev.stopPropagation());
+    dialogoBusca.addEventListener('touchstart', (ev) => ev.stopPropagation(), { passive: true });
+  }
+
+  /* Fundo escuro só fecha se o toque começou e terminou nele, após 350ms da abertura */
+  const fundoBusca = document.querySelector('[data-fechar-busca]');
+  if (fundoBusca) {
+    fundoBusca.addEventListener('click', (ev) => {
+      if (pointerDownAlvo !== fundoBusca) return;
+      if (Date.now() - buscaAbertaEm < 350) return;
+      fecharBusca();
+    });
+  }
+
+  /* Botão voltar do celular fecha o modal de busca antes de sair ou trocar de aba */
+  window.addEventListener('popstate', () => {
+    const painel = $('#busca');
+    if (painel && !painel.hidden) {
+      fecharBusca(true);
+    }
+  });
 }
 
 /* --------------------------------------------------------------- ligações */
@@ -1075,11 +1349,12 @@ function iniciar() {
 
   atualizarBotaoInstalar();
 
-  /* Busca global manual */
+  /* Busca global manual + proteção contra toques fantasmas e vazamento de modal */
   $('#btn-busca')?.addEventListener('click', abrirBusca);
-  $('#busca-fechar')?.addEventListener('click', fecharBusca);
-  document.querySelector('[data-fechar-busca]')?.addEventListener('click', fecharBusca);
+  $('#busca-fechar')?.addEventListener('click', () => fecharBusca());
   $('#busca-input')?.addEventListener('input', (ev) => renderBusca(ev.target.value));
+  protegerModaisEToquesFantasmas();
+  iniciarCarrosselAbas();
 
   document.addEventListener('keydown', (ev) => {
     const painel = $('#busca');
@@ -1184,6 +1459,8 @@ function iniciar() {
   });
 
   window.addEventListener('hashchange', () => {
+    const painel = $('#busca');
+    if (painel && !painel.hidden) return;
     const id = (location.hash || '').replace('#', '');
     if (id && id !== viewAtual) trocarView(id, { hash: false });
   });
