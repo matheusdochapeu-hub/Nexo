@@ -436,34 +436,49 @@ function mesAnteriorDe(ym) {
 
 function trabalho(sat, atendimentos, ym, now) {
   const ff = sat && sat.fisioflow;
-  if (ff && ff.ganhosPorMes && (ff.mesAtualTotal || ff.ganhosPorMes[ym])) {
-    const mes = ff.ganhosPorMes[ym] || {};
-    return {
-      fonte: 'matrix',
-      recebido: num(mes.realizado != null ? mes.realizado : ff.mesAtualTotal),
-      aReceber: num(mes.aReceber != null ? mes.aReceber : ff.mesAtualPrevisto),
-      sessoes: num(mes.sessoes),
-      pacientes: num(ff.pacientesAtivos),
-      atualizadoEm: ff.atualizadoEm || null,
-      velho: stale(ff.atualizadoEm, now)
-    };
-  }
+  const entradas = arr(atendimentos).filter(
+    (e) => String(e.data || '').slice(0, 7) === ym && !/cancelad/i.test(String(e.status || ''))
+  );
 
-  const entradas = arr(atendimentos).filter((e) => String(e.data || '').slice(0, 7) === ym);
+  let daEntradas = null;
   if (entradas.length) {
-    const pago = entradas.filter((e) => /pago|recebido|paid/i.test(String(e.status || '')));
-    return {
+    const pago = entradas.filter((e) => e.pago === true || /pago|recebido|paid|quitad/i.test(String(e.status || '')));
+    daEntradas = {
       fonte: 'atendimentos',
       recebido: round2(pago.reduce((a, e) => a + num(e.valor), 0)),
       aReceber: round2(entradas.filter((e) => !pago.includes(e)).reduce((a, e) => a + num(e.valor), 0)),
+      previsto: null,
       sessoes: entradas.length,
-      pacientes: null,
+      pacientes: ff ? num(ff.pacientesAtivos) || null : null,
       atualizadoEm: null,
       velho: false
     };
   }
 
-  return null;
+  if (ff && ff.ganhosPorMes && (ff.mesAtualTotal || ff.ganhosPorMes[ym])) {
+    const mes = ff.ganhosPorMes[ym] || {};
+    const satVelho = stale(ff.atualizadoEm, now);
+    // Se o satélite do Matrix estiver desatualizado ou com menos sessões que as entradas diretas do app dela, prefere o app dela
+    if (daEntradas && (satVelho || daEntradas.sessoes > num(mes.sessoes))) {
+      return {
+        ...daEntradas,
+        previsto: mes.previsto != null ? num(mes.previsto) : null,
+        pacientes: num(ff.pacientesAtivos) || daEntradas.pacientes
+      };
+    }
+    return {
+      fonte: 'matrix',
+      recebido: num(mes.realizado != null ? mes.realizado : ff.mesAtualTotal),
+      aReceber: num(mes.aReceber != null ? mes.aReceber : ff.mesAtualPrevisto),
+      previsto: mes.previsto != null ? num(mes.previsto) : null,
+      sessoes: num(mes.sessoes),
+      pacientes: num(ff.pacientesAtivos),
+      atualizadoEm: ff.atualizadoEm || null,
+      velho: satVelho
+    };
+  }
+
+  return daEntradas;
 }
 
 /* -------------------------------------------------------------------------

@@ -52,17 +52,23 @@ export function lerMaracaju() {
 
 export function lerAtendimentos() {
   const local = arr(safeParse(ler(CHAVES.atendimentos)));
-  if (local.length) return local;
   const cache = lerPreferencia(CHAVE_ATEND_CACHE, null);
-  return cache && Array.isArray(cache.entradas) ? cache.entradas : [];
+  const daNuvem = cache && Array.isArray(cache.entradas) ? cache.entradas : [];
+  if (local.length && daNuvem.length) {
+    return daNuvem.length > local.length ? daNuvem : local;
+  }
+  return local.length ? local : daNuvem;
 }
 
 /** Agenda da Scarlet: `ft_local_schedules` (array com data/hora/status). */
 export function lerAgenda() {
   const local = arr(safeParse(ler(CHAVES.agenda)));
-  if (local.length) return local;
   const cache = lerPreferencia(CHAVE_ATEND_CACHE, null);
-  return cache && Array.isArray(cache.agenda) ? cache.agenda : [];
+  const daNuvem = cache && Array.isArray(cache.agenda) ? cache.agenda : [];
+  if (local.length && daNuvem.length) {
+    return daNuvem.length > local.length ? daNuvem : local;
+  }
+  return local.length ? local : daNuvem;
 }
 
 /** Ajustes que o app Faturas grava (overrides de item, extras, simulações, perfil). */

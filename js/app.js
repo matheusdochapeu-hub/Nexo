@@ -334,33 +334,58 @@ function viewCasa(s) {
   if (ben) {
     pecas.push(card(
       'Benefícios',
-      ben.ciclo ? `Ciclo ${esc(ben.ciclo)}` : 'VA e VR',
+      ben.ciclo ? `Ciclo ${esc(ben.ciclo)} · VA e VR` : 'VA e VR',
       `<div class="nx-kpis">
-        ${kpi('Saldo VA', money(ben.vaSaldo), `gasto ${money(ben.vaGasto)} de ${money(ben.vaTotal)}`)}
-        ${kpi('Saldo VR', money(ben.vrSaldo), `gasto ${money(ben.vrGasto)} de ${money(ben.vrTotal)}`)}
+        ${kpi('Disponível VA', money(ben.vaSaldo), `de ${money(ben.vaTotal)}`)}
+        ${kpi('Disponível VR', money(ben.vrSaldo), `de ${money(ben.vrTotal)}`)}
       </div>
-      ${barra('VA restante', `${money(ben.vaSaldo)} de ${money(ben.vaTotal)}`, ben.pctVa, ben.pctVa < 25 ? 'warn' : '')}
-      ${barra('VR restante', `${money(ben.vrSaldo)} de ${money(ben.vrTotal)}`, ben.pctVr, ben.pctVr < 25 ? 'warn' : '')}`,
+      ${barra('VA restante', `${pct(ben.pctVa)} · ${money(ben.vaSaldo)} de ${money(ben.vaTotal)}`, ben.pctVa, ben.pctVa < 25 ? 'warn' : '')}
+      ${barra('VR restante', `${pct(ben.pctVr)} · ${money(ben.vrSaldo)} de ${money(ben.vrTotal)}`, ben.pctVr, ben.pctVr < 25 ? 'warn' : '')}
+      ${lista(
+        [
+          { nome: 'Mercado no ciclo (VA gasto)', valor: ben.vaGasto },
+          { nome: 'Refeições no ciclo (VR gasto)', valor: ben.vrGasto }
+        ],
+        (r) => r
+      )}`,
       { chip: ben.velho ? chip('desatualizado', 'warn') : chip(ben.fonte === 'matrix' ? 'via Matrix' : 'via Casa Maracaju', 'ok') }
     ));
   }
 
-  if (trab) {
-    const base = trab.recebido + trab.aReceber;
+  if (trab || s.scarlet.ganhos !== null) {
+    const sc = s.scarlet;
+    const baseProd = trab ? trab.recebido + trab.aReceber : null;
+    const pctRecebidoProd = baseProd && baseProd > 0 ? Math.round((trab.recebido / baseProd) * 100) : 0;
+    const mesPassadoRotulo = sc.ganhosDe ? rotuloYm(sc.ganhosDe) : 'mês anterior';
+    const mesSeguinteRotulo = sc.producaoDe ? proximoDe(sc.producaoDe) : 'próximo mês';
+    const recursosMes = sc.recursos !== null && sc.recursos !== undefined ? sc.recursos : sc.ganhos;
+    const dicaCaixa = (sc.outrasRendas || 0) > 0 || (sc.repasse || 0) > 0
+      ? `Fisio ${money(sc.ganhos || 0)} (${mesPassadoRotulo}) + extras/transf.`
+      : `recebido de ${mesPassadoRotulo}`;
+
     pecas.push(card(
       'Trabalho da Scarlet',
-      'Atendimentos do mês',
+      `Caixa do cartão (${mesPassadoRotulo}) e produção (${mesSeguinteRotulo})`,
       `<div class="nx-kpis">
-        ${kpi('Total do mês', money(base), qtd(trab.sessoes, 'sessão', 'sessões'))}
-        ${kpi('Recebido', money(trab.recebido), 'já em caixa')}
+        ${kpi('Caixa p/ cartão', money(recursosMes), dicaCaixa)}
+        ${kpi(`P/ ${mesSeguinteRotulo}`, money(baseProd), trab ? qtd(trab.sessoes, 'sessão feita', 'sessões feitas') : 'produção')}
       </div>
-      <ul class="nx-list">
-        <li class="nx-row">
-          <span class="nx-row-nome">A receber${trab.pacientes ? ` · ${INTEIRO.format(trab.pacientes)} pacientes` : ''}</span>
-          <span class="nx-row-val">${money(trab.aReceber)}</span>
-        </li>
-      </ul>`,
-      { chip: trab.velho ? chip('desatualizado', 'warn') : chip(trab.fonte === 'matrix' ? 'via Matrix' : 'via app dela', 'ok') }
+      ${trab ? barra(`Já recebido (${rotuloYm(sc.producaoDe) || 'mês'})`, `${pct(pctRecebidoProd)} · ${money(trab.recebido)} de ${money(baseProd)}`, pctRecebidoProd, '') : ''}
+      ${lista(
+        [
+          { nome: `Atendimentos de ${mesPassadoRotulo} (neste mês)`, valor: sc.ganhos },
+          ...(trab
+            ? [
+                {
+                  nome: `A receber (${rotuloYm(sc.producaoDe) || 'mês'} · cai em ${mesSeguinteRotulo})`,
+                  valor: trab.aReceber
+                }
+              ]
+            : [])
+        ],
+        (r) => r
+      )}`,
+      { chip: trab && trab.velho ? chip('desatualizado', 'warn') : chip(trab && trab.fonte === 'matrix' ? 'via Matrix' : 'via app dela', 'ok') }
     ));
   }
 
