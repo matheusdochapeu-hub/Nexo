@@ -189,6 +189,9 @@ function textoAchado(a) {
     if (/Pct$/.test(chave)) {
       return `<span class="nx-money">${Math.round(Number(v))}%</span>`;
     }
+    if (/^(qtd|count|dias)$/i.test(chave)) {
+      return INTEIRO.format(Number(v));
+    }
     if (typeof v === 'number') {
       return `<span class="nx-money">${moneyTexto(v)}</span>`;
     }
@@ -333,11 +336,11 @@ function viewCasa(s) {
       'Benefícios',
       ben.ciclo ? `Ciclo ${esc(ben.ciclo)}` : 'VA e VR',
       `<div class="nx-kpis">
-        ${kpi('Disponível', money(ben.disponivel), 'VA + VR restante')}
-        ${kpi('Mercado no ciclo', money(ben.mercado), 'VA consumido')}
+        ${kpi('Saldo VA', money(ben.vaSaldo), `gasto ${money(ben.vaGasto)} de ${money(ben.vaTotal)}`)}
+        ${kpi('Saldo VR', money(ben.vrSaldo), `gasto ${money(ben.vrGasto)} de ${money(ben.vrTotal)}`)}
       </div>
-      ${barra('VA', `${money(ben.vaSaldo)} de ${money(ben.vaTotal)}`, ben.pctVa, ben.pctVa < 25 ? 'warn' : '')}
-      ${barra('VR', `${money(ben.vrSaldo)} de ${money(ben.vrTotal)}`, ben.pctVr, ben.pctVr < 25 ? 'warn' : '')}`,
+      ${barra('VA restante', `${money(ben.vaSaldo)} de ${money(ben.vaTotal)}`, ben.pctVa, ben.pctVa < 25 ? 'warn' : '')}
+      ${barra('VR restante', `${money(ben.vrSaldo)} de ${money(ben.vrTotal)}`, ben.pctVr, ben.pctVr < 25 ? 'warn' : '')}`,
       { chip: ben.velho ? chip('desatualizado', 'warn') : chip(ben.fonte === 'matrix' ? 'via Matrix' : 'via Casa Maracaju', 'ok') }
     ));
   }
@@ -458,17 +461,24 @@ function proximoDe(ym) {
 
 function viewScarlet(s) {
   const sc = s.scarlet;
-  const temDados = sc.ganhos !== null || sc.cartao !== null;
+  const temDados = sc.ganhos !== null || sc.recursos !== null || sc.cartao !== null;
   const pecas = [];
+  const recursosTotais = sc.recursos !== null && sc.recursos !== undefined ? sc.recursos : sc.ganhos;
+  const temExtrasOuRepasse = (sc.outrasRendas || 0) > 0 || (sc.repasse || 0) > 0;
+  const dicaGanhos = temExtrasOuRepasse
+    ? `Fisio ${money(sc.ganhos || 0)}${sc.outrasRendas > 0 ? ` + extras ${money(sc.outrasRendas)}` : ''}${sc.repasse > 0 ? ` + transf. ${money(sc.repasse)}` : ''}`
+    : sc.ganhosDe
+      ? 'trabalho de ' + rotuloYm(sc.ganhosDe)
+      : (sc.fonte === 'matrix' ? 'via Matrix' : 'atendimentos');
 
   pecas.push(card(
     'Seu mês',
     `${esc(s.periodo.mes)} de ${s.periodo.ano}`,
     `<div class="nx-hero-bloco">
-      ${heroKpi('Ganhos', money(sc.ganhos), sc.ganhosDe ? 'trabalho de ' + rotuloYm(sc.ganhosDe) : (sc.fonte === 'matrix' ? 'via Matrix' : 'atendimentos'))}
+      ${heroKpi('Recursos do mês', money(recursosTotais), dicaGanhos)}
       <div class="nx-kpis">
-        ${kpi('Recebido', money(sc.recebido), 'já em caixa')}
-        ${kpi('A receber', money(sc.aReceber), 'pendente')}
+        ${kpi('Atendimentos', money(sc.ganhos), sc.ganhosDe ? 'de ' + rotuloYm(sc.ganhosDe) : 'Fisio')}
+        ${kpi('Outras + Transf.', money((sc.outrasRendas || 0) + (sc.repasse || 0)), 'Matrix')}
       </div>
     </div>`,
     { hero: true }
@@ -488,7 +498,7 @@ function viewScarlet(s) {
       </li>
       <li class="nx-row">
         <span class="nx-row-nome">Ticket médio (produção)</span>
-        <span class="nx-row-val">${sc.sessoes && sc.ganhos ? money(sc.emProducao / sc.sessoes) : '—'}</span>
+        <span class="nx-row-val">${sc.sessoes && sc.emProducao ? money(sc.emProducao / sc.sessoes) : '—'}</span>
       </li>
     </ul>`
   ));
@@ -498,7 +508,7 @@ function viewScarlet(s) {
     'Nubank Black · o gasto é do casal, a fatura é sua',
     `<div class="nx-kpis">
       ${kpi('Fatura', money(sc.cartao), 'a pagar')}
-      ${kpi('Renda comprometida', sc.cartao && sc.ganhos ? pctHtml((sc.cartao / sc.ganhos) * 100, 50) : '—', 'da fatura sobre os ganhos')}
+      ${kpi('Renda comprometida', sc.cartao && recursosTotais ? pctHtml((sc.cartao / recursosTotais) * 100, 85) : '—', 'da fatura sobre os recursos')}
     </div>`
   ));
 

@@ -581,10 +581,13 @@ export function buildSnapshot(input = {}) {
         ? num(month.scarlet.ganhos)
         : null;
 
-  // Repasse interno do Matheus para a Scarlet (nas contas fixos/outros): não é despesa externa duas vezes quando a fatura é somada
-  const transfContas = [...fixos, ...outros].filter((it) => isTransferenciaParaScarlet(it));
+  // Repasse interno do Matheus para a Scarlet (nas contas fixos/outros/diários): não é despesa externa duas vezes quando a fatura é somada
+  const transfContas = [...fixos, ...outros, ...diarios].filter((it) => isTransferenciaParaScarlet(it));
   const transfTotal = round2(transfContas.reduce((a, it) => a + num(it.valor), 0));
   const transfPago = round2(transfContas.filter((it) => !!it.pago).reduce((a, it) => a + num(it.valor), 0));
+  const transfContasFixOut = [...fixos, ...outros].filter((it) => isTransferenciaParaScarlet(it));
+  const transfTotalFixOut = round2(transfContasFixOut.reduce((a, it) => a + num(it.valor), 0));
+  const transfPagoFixOut = round2(transfContasFixOut.filter((it) => !!it.pago).reduce((a, it) => a + num(it.valor), 0));
   const faturaValor = cartao && cartao.black !== null ? num(cartao.black) : 0;
   const temFatura = cartao && cartao.black !== null;
   const faturaPaga = !!(cartao && cartao.paga);
@@ -597,15 +600,19 @@ export function buildSnapshot(input = {}) {
 
   // Contas pagas × pendentes consolidadas (inclui fatura Nubank sem duplicar o repasse interno)
   const pagoConsolidado = temFatura
-    ? round2(Math.max(0, pag.pago - transfPago) + gastoDiario + (faturaPaga ? faturaValor : 0))
+    ? round2(Math.max(0, pag.pago - transfPagoFixOut) + gastoDiario + (faturaPaga ? faturaValor : 0))
     : pag.pago;
   const pendenteConsolidado = temFatura
-    ? round2(Math.max(0, pag.pendente - (transfTotal - transfPago)) + (faturaPaga ? 0 : faturaValor))
+    ? round2(Math.max(0, pag.pendente - (transfTotalFixOut - transfPagoFixOut)) + (faturaPaga ? 0 : faturaValor))
     : pag.pendente;
   const totalConsolidadoBarra = round2(pagoConsolidado + pendenteConsolidado);
   const pctPagoConsolidado = totalConsolidadoBarra > 0
     ? Math.round((pagoConsolidado / totalConsolidadoBarra) * 100)
     : 100;
+
+  const scarletRecursos = scarletGanhos !== null || receitaScarletExtras > 0 || transfPago > 0
+    ? round2((scarletGanhos || 0) + receitaScarletExtras + transfPago)
+    : null;
 
   const avisos = [];
   if (!matrix) avisos.push('Matrix ainda não abriu neste navegador.');
@@ -671,6 +678,7 @@ export function buildSnapshot(input = {}) {
       ganhos: scarletGanhos,
       outrasRendas: receitaScarletExtras,
       repasse: transfPago,
+      recursos: scarletRecursos,
       ganhosDe: trabAnterior ? ymAnterior : trab ? ym : null,
       emProducao: trab ? total(trab) : null,
       producaoDe: trab ? ym : null,
@@ -703,7 +711,13 @@ function achado(id, tom, titulo, texto, valores) {
   return { id, tom, titulo, texto, valores: valores || {} };
 }
 
-const parecePagamentoDeCartao = (nome) => /fatura|cart[ãa]o|nubank|black|ourocard/i.test(String(nome || ''));
+const parecePagamentoDeCartao = (nome) => {
+  const n = String(nome || '').trim().toLowerCase();
+  if (!n) return false;
+  // "Nubank" sozinho nos variáveis é o cartão individual do Matheus; não é a fatura Black da Scarlet
+  if (n === 'nubank' || n === 'nubank matheus' || n === 'nubank (matheus)') return false;
+  return /fatura\s*nubank|nubank\s*black|nubank\s*scarlet|cart[ãa]o\s*nubank/i.test(n);
+};
 
 export function conciliar(s) {
   if (!s || !s.casa) return [];
@@ -724,8 +738,8 @@ export function conciliar(s) {
           'beneficios',
           'risco',
           'O benefício estourou',
-          '{estouro} passaram do VA/VR no ciclo {ciclo}. Esse excedente saiu do bolso — conta ou cartão.',
-          { estouro, ciclo: b.ciclo || 'atual' }
+          '{estouro} passaram do VA/VR no ciclo {ciclo} (VA {vaSaldo} · VR {vrSaldo}). Esse excedente saiu do bolso — conta ou cartão.',
+          { estouro, ciclo: b.ciclo || 'atual', vaSaldo: b.vaSaldo, vrSaldo: b.vrSaldo }
         )
       );
     } else if (vaPct >= 90 || vrPct >= 90) {
@@ -734,8 +748,8 @@ export function conciliar(s) {
           'beneficios',
           'atencao',
           'Benefício no limite',
-          'VA em {vaPct} e VR em {vrPct}. Ainda restam {disponivel} até o fim do ciclo.',
-          { vaPct, vrPct, disponivel: b.disponivel }
+          'VA em {vaPct} (restam {vaSaldo} de {vaTotal}) e VR em {vrPct} (restam {vrSaldo} de {vrTotal}). Total disponível: {disponivel}.',
+          { vaPct, vrPct, vaSaldo: b.vaSaldo, vaTotal: b.vaTotal, vrSaldo: b.vrSaldo, vrTotal: b.vrTotal, disponivel: b.disponivel }
         )
       );
     } else {
@@ -744,8 +758,8 @@ export function conciliar(s) {
           'beneficios',
           'ok',
           'Benefícios com folga',
-          'Restam {disponivel} até o fim do ciclo (VA {vaPct}, VR {vrPct}).',
-          { disponivel: b.disponivel, vaPct, vrPct }
+          'VA: restam {vaSaldo} de {vaTotal} ({vaPct} usado) · VR: restam {vrSaldo} de {vrTotal} ({vrPct} usado). Total disponível: {disponivel}.',
+          { disponivel: b.disponivel, vaPct, vrPct, vaSaldo: b.vaSaldo, vaTotal: b.vaTotal, vrSaldo: b.vrSaldo, vrTotal: b.vrTotal }
         )
       );
     }
@@ -801,6 +815,7 @@ export function conciliar(s) {
   const todosGastos = [...(s.casa.gastos || []), ...(s.matheus.gastos || []), ...(s.scarlet.gastos || [])];
   const pagamentos = todosGastos.filter((g) => parecePagamentoDeCartao(g.nome));
   const somaPagamentos = round2(pagamentos.reduce((a, g) => a + g.valor, 0));
+  const sobraAntesFatura = round2(caixa.saldo + num(caixa.repasseAbatido));
 
   if (caixa.receitas > 0 && c && c.total !== null) {
     if (pagamentos.length) {
@@ -808,66 +823,90 @@ export function conciliar(s) {
         achado(
           'duplicidade',
           'info',
-          'A fatura já está no fluxo',
-          'Encontrei {qtd} lançamento de cartão no mês ({soma}). Comparo com a fatura, mas não somo de novo.',
+          'A fatura já está nas contas do mês',
+          'Encontrei {qtd} lançamento da fatura Nubank Black nas despesas ({soma}) — não somo de novo.',
           { qtd: pagamentos.length, soma: somaPagamentos }
         )
       );
-    } else if (caixa.saldo >= 0 && c.total > caixa.saldo) {
+    } else if (sobraAntesFatura >= 0 && c.total > sobraAntesFatura) {
       saida.push(
         achado(
           'sobra',
           'risco',
           'A fatura come a sobra',
           'A fatura de {fatura} passa a sobra de {sobra} em {dif}.',
-          { fatura: c.total, sobra: caixa.saldo, dif: round2(c.total - caixa.saldo) }
+          { fatura: c.total, sobra: sobraAntesFatura, dif: round2(c.total - sobraAntesFatura) }
         )
       );
-    } else if (caixa.saldo >= 0) {
+    } else if (sobraAntesFatura >= 0) {
       saida.push(
         achado(
           'sobra',
           'ok',
           'A sobra cobre a fatura',
-          'Depois dos {fatura} de fatura, ainda restariam {dif} da sobra de {sobra}.',
-          { fatura: c.total, sobra: caixa.saldo, dif: round2(caixa.saldo - c.total) }
+          'Depois dos {fatura} de fatura, ainda restam {dif} de sobra no mês.',
+          { fatura: c.total, sobra: sobraAntesFatura, dif: round2(sobraAntesFatura - c.total) }
         )
       );
     }
   }
 
-  /* 4. Quem paga o quê */
-  const totalGastos = caixa.gastosTotal;
-  if (totalGastos > 0) {
-    const pd = caixa.gastosPorDono;
+  /* 4. Quem paga o quê (Casa = VA/VR Maracaju · Matheus = contas/diários do Matrix · Scarlet = fatura Black + gastos dela) */
+  const sc = s.scarlet || {};
+  const gastoCasaBeneficios = b ? round2(Math.max(0, num(b.vaGasto)) + Math.max(0, num(b.vrGasto))) : 0;
+  const gastoScarletReal = round2(num(sc.totalGastos) + (c && c.black !== null ? num(c.black) : 0));
+  const repasseInterno = num(caixa.repasseAbatido);
+  // Se o usuário não reatribuiu manualmente, as contas bancárias do Matrix saem do salário/ganhos do Matheus (descontando gastos próprios da Scarlet e o repasse interno já contado na fatura)
+  const gastoMatheusReal = round2(Math.max(0, num(caixa.gastosTotal) - num(sc.totalGastos) - repasseInterno));
+  const totalDespesasReais = round2(gastoCasaBeneficios + gastoMatheusReal + gastoScarletReal);
+
+  if (totalDespesasReais > 0) {
+    const casaPct = Math.round((gastoCasaBeneficios / totalDespesasReais) * 100);
+    const matheusPct = Math.round((gastoMatheusReal / totalDespesasReais) * 100);
+    const scarletPct = Math.max(0, 100 - casaPct - matheusPct);
     saida.push(
       achado(
         'divisao',
         'info',
         'Quem paga o quê',
-        'Casa {casaPct} · Matheus {matheusPct} · Scarlet {scarletPct} dos {total} do mês.',
+        'Casa (VA/VR) {casaPct} ({casaVal}) · Matheus {matheusPct} ({matheusVal}) · Scarlet {scarletPct} ({scarletVal}) dos {total} do mês.',
         {
-          casaPct: Math.round((pd.casa / totalGastos) * 100),
-          matheusPct: Math.round((pd.matheus / totalGastos) * 100),
-          scarletPct: Math.round((pd.scarlet / totalGastos) * 100),
-          total: totalGastos
+          casaPct,
+          matheusPct,
+          scarletPct,
+          casaVal: gastoCasaBeneficios,
+          matheusVal: gastoMatheusReal,
+          scarletVal: gastoScarletReal,
+          total: totalDespesasReais
         }
       )
     );
   }
 
-  /* 5. Cartão da Scarlet × o que ela ganhou */
-  const sc = s.scarlet || {};
-  if (sc.cartao !== null && sc.cartao !== undefined && sc.ganhos > 0 && sc.cartao > sc.ganhos) {
-    saida.push(
-      achado(
-        'scarlet',
-        'atencao',
-        'O cartão da Scarlet passa dos ganhos',
-        'A fatura de {cartao} é {razaoPct} dos {ganhos} que ela ganhou no mês.',
-        { cartao: sc.cartao, razaoPct: round2((sc.cartao / sc.ganhos) * 100), ganhos: sc.ganhos }
-      )
-    );
+  /* 5. Cartão da Scarlet × o que ela ganhou (atendimentos + outras rendas + transferências recebidas) */
+  const baseScarlet = sc.recursos !== null && sc.recursos !== undefined ? sc.recursos : sc.ganhos;
+  if (sc.cartao !== null && sc.cartao !== undefined && baseScarlet > 0) {
+    if (sc.cartao > baseScarlet) {
+      saida.push(
+        achado(
+          'scarlet',
+          'atencao',
+          'O cartão da Scarlet passa dos ganhos',
+          'A fatura de {cartao} é {razaoPct} dos {ganhos} de recursos dela no mês.',
+          { cartao: sc.cartao, razaoPct: round2((sc.cartao / baseScarlet) * 100), ganhos: baseScarlet }
+        )
+      );
+    } else {
+      saida.push(
+        achado(
+          'scarlet',
+          'ok',
+          'Os recursos da Scarlet cobrem a fatura',
+          'A fatura de {cartao} usa {razaoPct} dos {ganhos} de recursos dela no mês (sobram {sobra}).',
+          { cartao: sc.cartao, razaoPct: round2((sc.cartao / baseScarlet) * 100), ganhos: baseScarlet, sobra: round2(baseScarlet - sc.cartao) }
+        )
+      );
+    }
   }
 
   return saida
