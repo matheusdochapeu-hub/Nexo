@@ -5,7 +5,7 @@
  */
 
 import { lerTudo, lerContexto, lerPreferencia, salvarPreferencia, definirDono, definirVencimento, limparRegras, lerBruto, lerRegras, aplicarAjustes, CHAVES_CACHE } from './store.js';
-import { DONO_LABEL, proximoDono, conciliar, contarAlertas, buildSnapshot, alertas, normalizarNomeConta } from './core.js';
+import { DONO_LABEL, proximoDono, conciliar, contarAlertas, buildSnapshot, alertas, normalizarNomeConta, listarPeriodos, ymKey } from './core.js';
 import { serializarAjustes, lerAjustes, nomeArquivo } from './ajustes.js';
 import { normalizarUrl, urlValida, sincronizar } from './sync.js';
 import { deveMostrarBotao, emModoApp, CHAVE_INSTALADO } from './instalar.js';
@@ -31,6 +31,8 @@ const VIEWS = [
 
 let snapshot = null;
 let viewAtual = 'casa';
+let periodoSelecionado = null;
+let periodosDisponiveis = [];
 let estadoHoje = [];
 let estadoVenc = {};
 
@@ -276,7 +278,10 @@ function viewCasa(s) {
       ? chip(`${estadoHoje.length} ${estadoHoje.length === 1 ? 'item' : 'itens'}`, 'warn')
       : chip('em dia', 'ok');
 
-  pecas.push(card('Hoje', dataLonga(new Date()), listaHoje(estadoHoje), { chip: chipHoje, largo: true }));
+  const ehMesCorrente = s.periodo.ym === ymKey(new Date());
+  const tituloHoje = ehMesCorrente ? 'Hoje' : `Compromissos · ${s.periodo.mes}`;
+  const subtituloHoje = ehMesCorrente ? dataLonga(new Date()) : `${s.periodo.mes} de ${s.periodo.ano}`;
+  pecas.push(card(tituloHoje, subtituloHoje, listaHoje(estadoHoje), { chip: chipHoje, largo: true }));
 
   const temFatura = c.faturaIncluida !== null && c.faturaIncluida !== undefined;
   const saldoExibido = temFatura ? c.saldoComFatura : c.saldo;
@@ -914,29 +919,89 @@ function esconderInstalar(marcar) {
   promptInstalacao = null;
 }
 
+function renderNavegadorMes(ymAtivo, ymReal) {
+  const select = $('#mes-select');
+  const btnAnt = $('#mes-ant');
+  const btnProx = $('#mes-prox');
+  const btnHoje = $('#mes-hoje');
+  if (!select) return;
+
+  const porAno = new Map();
+  periodosDisponiveis.forEach((p) => {
+    if (!porAno.has(p.ano)) porAno.set(p.ano, []);
+    porAno.get(p.ano).push(p);
+  });
+
+  select.innerHTML = [...porAno.entries()]
+    .map(
+      ([ano, lista]) =>
+        `<optgroup label="${ano}">${lista
+          .map(
+            (p) =>
+              `<option value="${esc(p.ym)}"${p.ym === ymAtivo ? ' selected' : ''}>${esc(p.rotulo)}</option>`
+          )
+          .join('')}</optgroup>`
+    )
+    .join('');
+  select.value = ymAtivo;
+
+  const idx = periodosDisponiveis.findIndex((p) => p.ym === ymAtivo);
+  if (btnAnt) btnAnt.disabled = idx <= 0;
+  if (btnProx) btnProx.disabled = idx === -1 || idx >= periodosDisponiveis.length - 1;
+  if (btnHoje) {
+    const temHojeNaLista = periodosDisponiveis.some((p) => p.ym === ymReal);
+    btnHoje.hidden = !temHojeNaLista || ymAtivo === ymReal;
+  }
+}
+
+function trocarPeriodo(novoYm) {
+  if (!novoYm || !periodosDisponiveis.some((p) => p.ym === novoYm)) return;
+  const antigoYm = snapshot ? snapshot.periodo.ym : periodoSelecionado;
+  if (novoYm === antigoYm) return;
+  const dir = antigoYm && novoYm < antigoYm ? 'prev' : 'next';
+  periodoSelecionado = novoYm;
+  render();
+  aplicarAnimacaoCarrossel(painelAtivoEl(), dir);
+}
+
 /* ------------------------------------------------------------------ shell */
 function render() {
   const ctx = lerContexto();
   const agora = new Date();
+  periodosDisponiveis = listarPeriodos(ctx.matrix);
+  const ymReal = ymKey(agora);
+
+  if (!periodoSelecionado || !periodosDisponiveis.some((p) => p.ym === periodoSelecionado)) {
+    const temAtual = periodosDisponiveis.find((p) => p.ym === ymReal);
+    periodoSelecionado = temAtual ? temAtual.ym : periodosDisponiveis[0].ym;
+  }
+
   snapshot = buildSnapshot({
     matrix: ctx.matrix,
     maracaju: ctx.maracaju,
     atendimentos: ctx.atendimentos,
     faturas: ctx.faturas,
     regras: ctx.regras,
+    periodo: periodoSelecionado,
     now: agora
   });
+  const [anoSel, mesSel] = periodoSelecionado.split('-').map(Number);
+  const dataRefAlertas =
+    periodoSelecionado === ymReal
+      ? agora
+      : new Date(anoSel, mesSel - 1, 1, 12, 0, 0);
   estadoHoje = alertas(snapshot, {
     maracaju: ctx.maracaju,
     agenda: ctx.agenda,
     vencimentos: ctx.vencimentos,
-    now: agora
+    now: dataRefAlertas
   });
   estadoVenc = ctx.vencimentos || {};
   indiceBusca = null; // dado novo = índice novo na próxima busca
 
   const semNada = !snapshot.fontes.matrix && !snapshot.fontes.atendimentos && !snapshot.casa.beneficios;
   $('#periodo').textContent = `${snapshot.periodo.mes} de ${snapshot.periodo.ano}`;
+  renderNavegadorMes( snapshot.periodo.ym, ymReal );
 
   const ehAjustes = viewAtual === 'ajustes';
   const corpo = ehAjustes
@@ -1257,6 +1322,27 @@ function iniciar() {
   nav.addEventListener('click', (ev) => {
     const btn = ev.target.closest('.nx-tab');
     if (btn) trocarView(btn.dataset.view);
+  });
+
+  /* Navegação entre meses (a partir de Outubro/2026 até meses/anos futuros) */
+  $('#mes-select')?.addEventListener('change', (ev) => {
+    trocarPeriodo(ev.target.value);
+  });
+  $('#mes-ant')?.addEventListener('click', () => {
+    const idx = periodosDisponiveis.findIndex((p) => p.ym === periodoSelecionado);
+    if (idx > 0) trocarPeriodo(periodosDisponiveis[idx - 1].ym);
+  });
+  $('#mes-prox')?.addEventListener('click', () => {
+    const idx = periodosDisponiveis.findIndex((p) => p.ym === periodoSelecionado);
+    if (idx !== -1 && idx < periodosDisponiveis.length - 1) {
+      trocarPeriodo(periodosDisponiveis[idx + 1].ym);
+    }
+  });
+  $('#mes-hoje')?.addEventListener('click', () => {
+    const ymReal = ymKey(new Date());
+    if (periodosDisponiveis.some((p) => p.ym === ymReal)) {
+      trocarPeriodo(ymReal);
+    }
   });
 
   nav.addEventListener('keydown', (ev) => {

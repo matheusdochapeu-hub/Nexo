@@ -10,7 +10,7 @@ import {
   num, round2, ymKey, monthLabel, pickMonth, safeParse, soma,
   isBeneficio, isContaBeneficio, stale, resumoPagamento, buildSnapshot,
   DONOS, donoPadrao, indexarRegras, resolverDono, proximoDono,
-  conciliar, contarAlertas
+  conciliar, contarAlertas, listarPeriodos
 } from '../js/core.js';
 
 const AGORA = new Date('2026-11-11T12:00:00-03:00');
@@ -580,4 +580,56 @@ test('caixa consolidado: abate provisão de caronas, inclui fatura e desconta re
   assert.equal(s.casa.caixa.faturaIncluida, 4883.05);
   assert.equal(s.casa.caixa.gastosComFatura, round2(s.casa.caixa.gastosTotal - 1500 + 4883.05));
   assert.equal(s.casa.caixa.saldoComFatura, round2(10386.24 - s.casa.caixa.gastosComFatura));
+});
+
+test('listarPeriodos: começa em Outubro/2026 e inclui todos os meses e anos futuros do Matrix', () => {
+  const st = {
+    anos: {
+      2026: { Outubro: {}, Novembro: {}, Dezembro: {} },
+      2027: { Janeiro: {}, Dezembro: {} },
+      2028: { Janeiro: {}, Fevereiro: {} }
+    }
+  };
+  const lista = listarPeriodos(st);
+  assert.equal(lista[0].ym, '2026-10');
+  assert.equal(lista[0].rotulo, 'Outubro de 2026');
+  assert.ok(lista.some((p) => p.ym === '2027-06'), 'inclui todos os meses de 2027');
+  assert.equal(lista[lista.length - 1].ym, '2028-02', 'inclui anos futuros do Matrix');
+});
+
+test('buildSnapshot com periodo: navega para mês passado (2026-10) e futuro (2027-01)', () => {
+  const st = estadoMatrix();
+  st.anos[2026].Outubro = {
+    fixos: [{ id: 'f1', nome: 'Financiamento', valor: 1400, pago: true }],
+    outros: [],
+    diarios: [],
+    receitas: [
+      { id: 'r1', nome: 'Salário USP', valor: 5786.24, pago: true },
+      { id: 'r2', nome: 'Vale Alimentação (VA)', valor: 2050, naoPecunia: true, pago: true },
+      { id: 'r3', nome: 'Vale Refeição (VR)', valor: 1235, naoPecunia: true, pago: true },
+      { id: 'r4', nome: 'Ganhos Scarlet', valor: 3700, titular: 'scarlet', pago: true }
+    ],
+    scarlet: { faturaNubank: 3200, gastos: [] }
+  };
+  st.anos[2027] = {
+    Janeiro: {
+      fixos: [{ id: 'f27', nome: 'Financiamento', valor: 1400, pago: false }],
+      outros: [],
+      diarios: [],
+      receitas: [{ id: 'r27', nome: 'Salário USP', valor: 5788.19, pago: false }],
+      scarlet: { faturaNubank: 1900, gastos: [] }
+    }
+  };
+
+  const sOut = buildSnapshot({ matrix: st, periodo: '2026-10', now: AGORA });
+  assert.equal(sOut.periodo.ym, '2026-10');
+  assert.equal(sOut.periodo.mes, 'Outubro');
+  assert.equal(sOut.casa.beneficios.vaTotal, 2050);
+  assert.equal(sOut.casa.beneficios.vrTotal, 1235);
+  assert.equal(sOut.scarlet.ganhos, 3700);
+
+  const sJan = buildSnapshot({ matrix: st, periodo: '2027-01', now: AGORA });
+  assert.equal(sJan.periodo.ym, '2027-01');
+  assert.equal(sJan.periodo.ano, 2027);
+  assert.equal(sJan.casa.caixa.receitas, 5788.19, 'mês futuro sem nenhum pago considera receitas previstas');
 });

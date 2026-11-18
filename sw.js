@@ -3,7 +3,7 @@
  * HTML: network-first (versão nova na hora). Estáticos: cache-first.
  */
 
-const CACHE_NAME = 'nexo-v0.19.1';
+const CACHE_NAME = 'nexo-v0.20.0';
 const ESTATICOS = [
   './',
   './index.html',

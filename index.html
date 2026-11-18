@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./icons/nexo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="./icons/nexo.svg">
-<link rel="stylesheet" href="./css/nexo.css?v=0.19.1">
+<link rel="stylesheet" href="./css/nexo.css?v=0.20.0">
 </head>
 <body data-privado="0">
 
@@ -44,6 +44,14 @@
 
   <div class="nx-topo" id="topo">
     <div id="launcher" class="nx-dock" aria-label="Abrir um app"></div>
+    <div class="nx-mes-nav" id="mes-nav" aria-label="Navegar entre os meses" data-prevent-swipe>
+      <button class="nx-mes-btn" id="mes-ant" type="button" title="Mês anterior" aria-label="Mês anterior">‹</button>
+      <div class="nx-mes-centro">
+        <select id="mes-select" class="nx-mes-select" aria-label="Selecionar mês e ano"></select>
+        <button class="nx-mes-hoje" id="mes-hoje" type="button" title="Voltar para o mês atual" hidden>Mês atual</button>
+      </div>
+      <button class="nx-mes-btn" id="mes-prox" type="button" title="Próximo mês" aria-label="Próximo mês">›</button>
+    </div>
     <nav class="nx-tabs" id="tabs" role="tablist" aria-label="Áreas do Nexo"></nav>
   </div>
 
@@ -107,6 +115,6 @@
   </section>
 </div>
 
-<script type="module" src="./js/app.js?v=0.19.1"></script>
+<script type="module" src="./js/app.js?v=0.20.0"></script>
 </body>
 </html>

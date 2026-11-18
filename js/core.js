@@ -223,6 +223,53 @@ export function stale(iso, now = new Date(), horas = HORAS_DADO_VELHO) {
   return (now.getTime() - t) / 36e5 > horas;
 }
 
+export const MESES_ABREV = [
+  'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+  'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+];
+
+/**
+ * Lista todos os períodos navegáveis em ordem cronológica a partir de Outubro/2026
+ * (primeiro mês do Matrix), incluindo todos os meses e anos futuros presentes no Matrix.
+ */
+export function listarPeriodos(matrix) {
+  const mapa = new Map();
+  const adicionar = (anoNum, mesNum) => {
+    if (!Number.isFinite(anoNum) || !Number.isFinite(mesNum)) return;
+    if (mesNum < 1 || mesNum > 12) return;
+    if (anoNum < 2026 || (anoNum === 2026 && mesNum < 10)) return;
+    const ym = `${anoNum}-${String(mesNum).padStart(2, '0')}`;
+    if (mapa.has(ym)) return;
+    const nome = MESES[mesNum - 1];
+    mapa.set(ym, {
+      ym,
+      ano: anoNum,
+      mes: mesNum,
+      nome,
+      curto: `${MESES_ABREV[mesNum - 1]}/${String(anoNum).slice(-2)}`,
+      rotulo: `${nome} de ${anoNum}`
+    });
+  };
+
+  // Garante a linha base a partir de Outubro/2026 até Dezembro/2027
+  for (let m = 10; m <= 12; m++) adicionar(2026, m);
+  for (let m = 1; m <= 12; m++) adicionar(2027, m);
+
+  const anos = matrix && matrix.anos;
+  if (anos && typeof anos === 'object') {
+    for (const [anoStr, mesesObj] of Object.entries(anos)) {
+      const anoNum = Number(anoStr);
+      if (!Number.isFinite(anoNum) || !mesesObj || typeof mesesObj !== 'object') continue;
+      for (const nomeMes of Object.keys(mesesObj)) {
+        const idx = MESES.indexOf(nomeMes);
+        if (idx !== -1) adicionar(anoNum, idx + 1);
+      }
+    }
+  }
+
+  return [...mapa.values()].sort((a, b) => a.ym.localeCompare(b.ym));
+}
+
 /**
  * Acha o mês pedido. Se o ano atual não existir no estado (base histórica
  * 2025–2027), usa o ano mais recente que tenha aquele mês, e avisa.
@@ -273,7 +320,53 @@ export function resumoPagamento(lista) {
 /* -------------------------------------------------------------------------
  * BENEFÍCIOS (VA/VR) — Matrix sincronizado manda; Casa Maracaju é o backup.
  * ---------------------------------------------------------------------- */
-function beneficios(sat, maracaju, now) {
+function beneficios(sat, maracaju, now, opcoesMes = null) {
+  if (opcoesMes && opcoesMes.ehMesDiferente && Array.isArray(opcoesMes.receitas)) {
+    const recsBenef = opcoesMes.receitas.filter((r) => r.beneficio);
+    if (recsBenef.length > 0) {
+      const vaTotal = round2(
+        recsBenef
+          .filter((r) => /alimenta|\bva\b/i.test(`${r.nome} ${r.conta}`))
+          .reduce((a, r) => a + num(r.valor), 0)
+      );
+      const vrTotal = round2(
+        recsBenef
+          .filter((r) => /refei|\bvr\b/i.test(`${r.nome} ${r.conta}`))
+          .reduce((a, r) => a + num(r.valor), 0)
+      );
+      const diariosBrutos = Array.isArray(opcoesMes.diariosBrutos) ? opcoesMes.diariosBrutos : [];
+      const vaGasto = round2(
+        diariosBrutos
+          .filter((d) => /va\b/i.test(String(d && d.conta)))
+          .reduce((a, d) => a + num(d.valor), 0)
+      );
+      const vrGasto = round2(
+        diariosBrutos
+          .filter((d) => /vr\b/i.test(String(d && d.conta)))
+          .reduce((a, d) => a + num(d.valor), 0)
+      );
+      const vaSaldo = round2(vaTotal - vaGasto);
+      const vrSaldo = round2(vrTotal - vrGasto);
+      return {
+        fonte: 'matrix',
+        ciclo: opcoesMes.ym || null,
+        creditDate: null,
+        vaTotal,
+        vaSaldo,
+        vaGasto,
+        vrTotal,
+        vrSaldo,
+        vrGasto,
+        disponivel: round2(vaSaldo + vrSaldo),
+        mercado: vaGasto,
+        pctVa: vaTotal > 0 ? Math.round((vaSaldo / vaTotal) * 100) : 0,
+        pctVr: vrTotal > 0 ? Math.round((vrSaldo / vrTotal) * 100) : 0,
+        atualizadoEm: null,
+        velho: false
+      };
+    }
+  }
+
   const m = sat && sat.maracaju;
   if (m && (m.vaTotal != null || m.totalDisponivel != null)) {
     const vaTotal = num(m.vaTotal);
@@ -365,9 +458,11 @@ function proximaFaturaDoSatelite(f, now) {
   return num(f.faturasFuturasCompromissadas);
 }
 
-function cartoes(sat, month, now, local, base) {
+function cartoes(sat, month, dataPeriodo, local, base, nowReal = dataPeriodo, ehMesDiferente = false) {
   const f = sat && sat.faturas;
   const doMes = month && month.scarlet ? num(month.scarlet.faturaNubank) : null;
+  const indice = indiceDoMes(dataPeriodo.getFullYear(), dataPeriodo.getMonth() + 1);
+  const chaveMesSatelite = `${dataPeriodo.getFullYear()}-${NOMES_MES[dataPeriodo.getMonth()]}`;
 
   const temAjustes =
     !!local &&
@@ -382,7 +477,6 @@ function cartoes(sat, month, now, local, base) {
   let baseados = null;
 
   if (temAjustes) {
-    const indice = indiceDoMes(now.getFullYear(), now.getMonth() + 1);
     const dados = {
       base,
       overrides: local.overrides,
@@ -397,12 +491,18 @@ function cartoes(sat, month, now, local, base) {
     fonte = 'faturas';
     baseados = tamanhoBase(base);
   } else if (f) {
-    black = num(f.faturaAtualReal != null ? f.faturaAtualReal : f.faturaAtualValor);
+    const noMapa = f.faturasPorMes && f.faturasPorMes[chaveMesSatelite];
+    if (ehMesDiferente && noMapa) {
+      black = num(noMapa.total != null ? noMapa.total : noMapa.valorReal);
+    } else if (ehMesDiferente && doMes !== null && doMes > 0) {
+      black = doMes;
+    } else if (ehMesDiferente) {
+      black = totalDoMes(indice, { base });
+    } else {
+      black = num(f.faturaAtualReal != null ? f.faturaAtualReal : f.faturaAtualValor);
+    }
     meta = f.limiteMetaMensal != null ? num(f.limiteMetaMensal) : null;
-    // "Próximo mês" tem que ser a fatura seguinte de verdade. O mapa por mês do
-    // satélite é a melhor fonte disponível aqui; `faturasFuturasCompromissadas`
-    // é só um escalar de emergência (já veio 1.568,05 quando a fatura era 1.793,36).
-    futuras = proximaFaturaDoSatelite(f, now);
+    futuras = proximaFaturaDoSatelite(f, dataPeriodo);
     atualizadoEm = f.atualizadoEm || null;
     fonte = 'matrix';
   } else if (doMes !== null) {
@@ -423,7 +523,7 @@ function cartoes(sat, month, now, local, base) {
     pctMeta: meta && meta > 0 && black !== null ? Math.round((black / meta) * 100) : null,
     futuras,
     atualizadoEm,
-    velho: fonte === 'faturas' ? false : fonte === 'matrix' ? stale(atualizadoEm, now) : fonte === 'scarlet' ? true : true,
+    velho: fonte === 'faturas' ? false : fonte === 'matrix' ? stale(atualizadoEm, nowReal) : fonte === 'scarlet' ? true : true,
     fonte,
     baseados
   };
@@ -462,7 +562,8 @@ function trabalho(sat, atendimentos, ym, now) {
     };
   }
 
-  if (ff && ff.ganhosPorMes && (ff.mesAtualTotal || ff.ganhosPorMes[ym])) {
+  const ehMesReal = ym === ymKey(now);
+  if (ff && ff.ganhosPorMes && (ff.ganhosPorMes[ym] || (ehMesReal && ff.mesAtualTotal != null))) {
     const mes = ff.ganhosPorMes[ym] || {};
     const satVelho = stale(ff.atualizadoEm, now);
     // Se o satélite do Matrix estiver desatualizado ou com menos sessões que as entradas diretas do app dela, prefere o app dela
@@ -497,9 +598,20 @@ export function buildSnapshot(input = {}) {
   const maracaju = input.maracaju || null;
   const atendimentos = arr(input.atendimentos);
 
-  const ym = ymKey(now);
-  const label = monthLabel(now);
-  const ano = now.getFullYear();
+  let dataPeriodo = now;
+  const matchPeriodo = typeof input.periodo === 'string' && /^(\d{4})-(\d{2})$/.exec(input.periodo.trim());
+  if (matchPeriodo) {
+    const anoP = Number(matchPeriodo[1]);
+    const mesP = Number(matchPeriodo[2]);
+    if (anoP >= 2020 && mesP >= 1 && mesP <= 12) {
+      dataPeriodo = new Date(anoP, mesP - 1, 15, 12, 0, 0);
+    }
+  }
+
+  const ym = ymKey(dataPeriodo);
+  const label = monthLabel(dataPeriodo);
+  const ano = dataPeriodo.getFullYear();
+  const ehMesDiferente = Boolean(matchPeriodo && ym !== ymKey(now));
 
   const picked = matrix ? pickMonth(matrix, ano, label) : { month: null, ano: null, fallback: false };
   const month = picked.month;
@@ -526,7 +638,8 @@ export function buildSnapshot(input = {}) {
   const outros = arr(month && month.outros).map((o) => ({ ...o, pago: estaPago(o) }));
   const inicioAno = arr(month && month.inicioAno).map((x) => ({ ...x, pago: estaPago(x) }));
 
-  const diarios = arr(month && month.diarios)
+  const diariosBrutos = arr(month && month.diarios);
+  const diarios = diariosBrutos
     .filter((d) => !d.jaAlocadoVariavel && !isContaBeneficio(d.conta))
     .map((d) => ({ ...d, pago: estaPago(d) }));
 
@@ -569,23 +682,39 @@ export function buildSnapshot(input = {}) {
   const listaPorDono = (dono) =>
     gastos.filter((g) => g.dono === dono).sort((a, b) => b.valor - a.valor);
 
-  // No Matrix, apenas receitas em pecúnia já pagas/recebidas entram no saldo líquido em conta
-  const receitasPecuniaPagas = receitas.filter((r) => !r.beneficio && r.pago);
-  const receitaPecunia = round2(receitasPecuniaPagas.reduce((a, r) => a + r.valor, 0));
+  // No Matrix, nos meses em andamento/passados entram as receitas já recebidas (pago: true);
+  // em meses futuros onde nenhuma receita ainda foi marcada como paga, projeta com as receitas previstas.
+  const todasReceitasPecunia = receitas.filter((r) => !r.beneficio);
+  const temAlgumaReceitaPaga = todasReceitasPecunia.some((r) => r.pago);
+  const receitasPecuniaAtivas = temAlgumaReceitaPaga
+    ? todasReceitasPecunia.filter((r) => r.pago)
+    : todasReceitasPecunia;
+
+  const receitaPecunia = round2(receitasPecuniaAtivas.reduce((a, r) => a + r.valor, 0));
   const receitaMatheusPecunia = round2(
-    receitasPecuniaPagas.filter((r) => !r.scarlet).reduce((a, r) => a + r.valor, 0)
+    receitasPecuniaAtivas.filter((r) => !r.scarlet).reduce((a, r) => a + r.valor, 0)
   );
   const receitaScarletExtras = round2(
-    receitasPecuniaPagas
+    receitasPecuniaAtivas
       .filter((r) => r.scarlet && !/fisio|atendimento/i.test(r.nome) && !/fisio/i.test(r.categoria))
+      .reduce((a, r) => a + r.valor, 0)
+  );
+  const receitaScarletFisioMatrix = round2(
+    receitasPecuniaAtivas
+      .filter((r) => r.scarlet && (/ganhos|fisio|atendimento/i.test(r.nome) || /fisio/i.test(r.categoria)))
       .reduce((a, r) => a + r.valor, 0)
   );
   const receitaBeneficio = round2(receitas.filter((r) => r.beneficio).reduce((a, r) => a + r.valor, 0));
   const gastoDiario = soma(diarios);
   const gastoTotal = round2(pag.total + gastoDiario);
 
-  const cartao = cartoes(sat, month, now, input.faturas || null, input.base || null);
-  const beneficio = beneficios(sat, maracaju, now);
+  const cartao = cartoes(sat, month, dataPeriodo, input.faturas || null, input.base || null, now, ehMesDiferente);
+  const beneficio = beneficios(sat, maracaju, now, {
+    ehMesDiferente,
+    ym,
+    receitas,
+    diariosBrutos
+  });
   const trab = trabalho(sat, atendimentos, ym, now);
 
   /* Scarlet recebe com um mês de atraso: o que ela trabalha em outubro cai em
@@ -597,11 +726,13 @@ export function buildSnapshot(input = {}) {
 
   const scarletGanhos = trabAnterior
     ? total(trabAnterior)
-    : trab
-      ? total(trab)
-      : month && month.scarlet
-        ? num(month.scarlet.ganhos)
-        : null;
+    : ehMesDiferente && receitaScarletFisioMatrix > 0
+      ? receitaScarletFisioMatrix
+      : trab
+        ? total(trab)
+        : month && month.scarlet
+          ? num(month.scarlet.ganhos)
+          : null;
 
   // Repasse interno do Matheus para a Scarlet (nas contas fixos/outros/diários): não é despesa externa duas vezes quando a fatura é somada
   const transfContas = [...fixos, ...outros, ...diarios].filter((it) => isTransferenciaParaScarlet(it));
@@ -632,8 +763,9 @@ export function buildSnapshot(input = {}) {
     ? Math.round((pagoConsolidado / totalConsolidadoBarra) * 100)
     : 100;
 
-  const scarletRecursos = scarletGanhos !== null || receitaScarletExtras > 0 || transfPago > 0
-    ? round2((scarletGanhos || 0) + receitaScarletExtras + transfPago)
+  const repasseConsiderado = temAlgumaReceitaPaga ? transfPago : transfTotal;
+  const scarletRecursos = scarletGanhos !== null || receitaScarletExtras > 0 || repasseConsiderado > 0
+    ? round2((scarletGanhos || 0) + receitaScarletExtras + repasseConsiderado)
     : null;
 
   const avisos = [];
@@ -642,12 +774,12 @@ export function buildSnapshot(input = {}) {
   if (picked.fallback) avisos.push(`Usando ${picked.ano} — não há ${label}/${ano} lançado.`);
   if (beneficio && beneficio.velho) avisos.push('Saldo de VA/VR desatualizado.');
   if (cartao && cartao.velho) avisos.push('Fatura desatualizada.');
-  if (!trab && !trabAnterior) avisos.push('Atendimentos sem dados neste aparelho.');
+  if (!trab && !trabAnterior && !ehMesDiferente) avisos.push('Atendimentos sem dados neste aparelho.');
 
   return {
     geradoEm: now.toISOString(),
     ym,
-    periodo: { ano, mes: label, mesIndice: now.getMonth(), ym, anoDados: picked.ano, fallback: picked.fallback },
+    periodo: { ano, mes: label, mesIndice: dataPeriodo.getMonth(), ym, anoDados: picked.ano, fallback: picked.fallback },
     fontes: {
       matrix: !!matrix,
       matrixMes: !!month,
@@ -699,9 +831,9 @@ export function buildSnapshot(input = {}) {
     scarlet: {
       ganhos: scarletGanhos,
       outrasRendas: receitaScarletExtras,
-      repasse: transfPago,
+      repasse: repasseConsiderado,
       recursos: scarletRecursos,
-      ganhosDe: trabAnterior ? ymAnterior : trab ? ym : null,
+      ganhosDe: trabAnterior ? ymAnterior : ehMesDiferente && receitaScarletFisioMatrix > 0 ? ymAnterior : trab ? ym : null,
       emProducao: trab ? total(trab) : null,
       producaoDe: trab ? ym : null,
       recebido: (trabAnterior || trab) ? (trabAnterior || trab).recebido : null,

@@ -232,6 +232,117 @@ a {
 
 /* Sinaliza que o dock rola: desligado — no celular a grade mostra os 4. */
 
+/* ----------------------------------------------------------- seletor mês */
+.nx-mes-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 4px 6px;
+  background: var(--nx-surface);
+  border: 1px solid var(--nx-line);
+  border-radius: var(--nx-r-pill);
+  box-shadow: var(--nx-shadow-sm);
+}
+
+.nx-mes-btn {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--nx-surface-2);
+  color: var(--nx-ink);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, transform 0.12s ease, opacity 0.15s ease;
+}
+
+.nx-mes-btn:hover:not(:disabled) {
+  background: var(--nx-surface-3);
+}
+
+.nx-mes-btn:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.nx-mes-btn:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
+.nx-mes-centro {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.nx-mes-select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--nx-ink);
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  padding: 4px 20px 4px 8px;
+  border-radius: var(--nx-r-pill);
+  cursor: pointer;
+  text-align: center;
+  text-align-last: center;
+  max-width: 100%;
+  background-image: linear-gradient(45deg, transparent 50%, var(--nx-muted) 50%),
+    linear-gradient(135deg, var(--nx-muted) 50%, transparent 50%);
+  background-position: calc(100% - 9px) 52%, calc(100% - 4px) 52%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.nx-mes-select:hover {
+  background-color: var(--nx-surface-2);
+}
+
+.nx-mes-select option,
+.nx-mes-select optgroup {
+  background: var(--nx-surface);
+  color: var(--nx-ink);
+  font-weight: 500;
+}
+
+.nx-mes-hoje {
+  flex: 0 0 auto;
+  border: 1px solid var(--nx-accent);
+  background: var(--nx-accent-soft);
+  color: var(--nx-accent);
+  border-radius: var(--nx-r-pill);
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+
+.nx-mes-hoje[hidden] {
+  display: none !important;
+}
+
+.nx-mes-hoje:active {
+  transform: scale(0.95);
+}
+
 /* ------------------------------------------------------------------ abas */
 .nx-tabs {
   position: relative;
