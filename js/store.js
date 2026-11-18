@@ -39,11 +39,18 @@ export function lerMatrix() {
   const local = safeParse(ler(CHAVES.matrix));
   const cache = lerPreferencia(CHAVES_CACHE.matrix, null);
   if (local && cache) {
-    const tLocal = Date.parse(local.atualizadoEm || '') || 0;
-    const tCache = Date.parse(cache.atualizadoEm || '') || 0;
-    return tCache > tLocal ? cache : local;
+    // Se o usuário editou algo localmente no Matrix nos últimos 30 minutos e ainda não subiu, respeita o local
+    const dirtyRaw = ler('matrix_local_dirty_since');
+    const dirtyTs = dirtyRaw ? Date.parse(dirtyRaw) : 0;
+    const localSujoRecente = dirtyTs > 0 && Date.now() - dirtyTs < 30 * 60 * 1000;
+    if (localSujoRecente) {
+      const tLocal = Date.parse(local.atualizadoEm || '') || 0;
+      const tCache = Date.parse(cache.atualizadoEm || '') || 0;
+      return tLocal > tCache ? local : cache;
+    }
+    return cache;
   }
-  return local || cache || null;
+  return cache || local || null;
 }
 
 export function lerMaracaju() {

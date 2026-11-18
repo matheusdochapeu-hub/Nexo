@@ -259,7 +259,14 @@ export function resumoPagamento(lista) {
     pendentes: pendentes
       .slice()
       .sort((a, b) => num(b.valor) - num(a.valor))
-      .map((it) => ({ nome: it.nome || 'Conta', valor: num(it.valor) }))
+      .map((it) => {
+        const base = { nome: it.nome || 'Conta', valor: num(it.valor) };
+        if (it.valorProvisao != null) {
+          base.valorProvisao = num(it.valorProvisao);
+          base.valorConsumido = round2(Math.max(0, num(it.valorProvisao) - num(it.valor)));
+        }
+        return base;
+      })
   };
 }
 

@@ -164,8 +164,11 @@ function listaVencimentos(pendentes, vencimentos) {
   return `<ul class="nx-list">${pendentes
     .map((p) => {
       const dia = vencimentos[normalizarNomeConta(p.nome)] || '';
+      const detalheProvisao = p.valorProvisao != null && p.valorConsumido > 0
+        ? ` <span class="nx-row-note">(${moneyTexto(p.valorConsumido)} já gasto de ${moneyTexto(p.valorProvisao)})</span>`
+        : '';
       return `<li class="nx-row nx-row--venc">
-        <span class="nx-row-nome">${esc(p.nome)}</span>
+        <span class="nx-row-nome">${esc(p.nome)}${detalheProvisao}</span>
         <input class="nx-input nx-input--dia" type="number" min="1" max="31" inputmode="numeric"
                value="${esc(dia)}" placeholder="dia" data-venc="${esc(p.nome)}"
                aria-label="Dia de vencimento de ${esc(p.nome)}">

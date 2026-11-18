@@ -3,7 +3,7 @@
  * HTML: network-first (versão nova na hora). Estáticos: cache-first.
  */
 
-const CACHE_NAME = 'nexo-v0.18.1';
+const CACHE_NAME = 'nexo-v0.18.2';
 const ESTATICOS = [
   './',
   './index.html',
@@ -46,8 +46,9 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   const ehNavegacao = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
+  const ehCodigoOuEstilo = /\.(js|css|json)$/i.test(url.pathname);
 
-  if (ehNavegacao) {
+  if (ehNavegacao || ehCodigoOuEstilo) {
     event.respondWith(
       fetch(req)
         .then((resp) => {
@@ -55,7 +56,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(req, copia));
           return resp;
         })
-        .catch(() => caches.match(req).then((r) => r || caches.match('./index.html')))
+        .catch(() => caches.match(req).then((r) => r || (ehNavegacao ? caches.match('./index.html') : null)))
     );
     return;
   }
