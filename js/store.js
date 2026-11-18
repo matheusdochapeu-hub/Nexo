@@ -30,8 +30,20 @@ function ler(chave) {
   }
 }
 
+export const CHAVES_CACHE = {
+  matrix: 'matrix_cache',
+  faturas: 'faturas_cache'
+};
+
 export function lerMatrix() {
-  return safeParse(ler(CHAVES.matrix));
+  const local = safeParse(ler(CHAVES.matrix));
+  const cache = lerPreferencia(CHAVES_CACHE.matrix, null);
+  if (local && cache) {
+    const tLocal = Date.parse(local.atualizadoEm || '') || 0;
+    const tCache = Date.parse(cache.atualizadoEm || '') || 0;
+    return tCache > tLocal ? cache : local;
+  }
+  return local || cache || null;
 }
 
 export function lerMaracaju() {
@@ -66,11 +78,35 @@ export function lerFaturasLocal() {
   const extras = safeParse(ler(PV4.extra));
   const sim = safeParse(ler(PV4.sim));
   const profile = safeParse(ler(PV4.profile));
+  const temLocal =
+    (overrides && !Array.isArray(overrides) && Object.keys(overrides).length > 0) ||
+    (Array.isArray(extras) && extras.length > 0);
+
+  if (temLocal) {
+    return {
+      overrides: overrides && !Array.isArray(overrides) ? overrides : {},
+      extras: Array.isArray(extras) ? extras : [],
+      sim: Array.isArray(sim) ? sim : [],
+      profile: profile && !Array.isArray(profile) ? profile : {}
+    };
+  }
+
+  const cache = lerPreferencia(CHAVES_CACHE.faturas, null);
+  if (cache && typeof cache === 'object') {
+    return {
+      overrides: cache.overrides && !Array.isArray(cache.overrides) ? cache.overrides : {},
+      extras: Array.isArray(cache.extras) ? cache.extras : [],
+      sim: Array.isArray(cache.sim) ? cache.sim : [],
+      profile: cache.profile && !Array.isArray(cache.profile) ? cache.profile : {},
+      atualizadoEm: cache.atualizadoEm || null
+    };
+  }
+
   return {
-    overrides: overrides && !Array.isArray(overrides) ? overrides : {},
-    extras: Array.isArray(extras) ? extras : [],
-    sim: Array.isArray(sim) ? sim : [],
-    profile: profile && !Array.isArray(profile) ? profile : {}
+    overrides: {},
+    extras: [],
+    sim: [],
+    profile: {}
   };
 }
 

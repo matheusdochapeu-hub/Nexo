@@ -4,7 +4,7 @@
  * Nenhuma escrita no estado dos outros apps.
  */
 
-import { lerTudo, lerContexto, lerPreferencia, salvarPreferencia, definirDono, definirVencimento, limparRegras, lerBruto, lerRegras, aplicarAjustes } from './store.js';
+import { lerTudo, lerContexto, lerPreferencia, salvarPreferencia, definirDono, definirVencimento, limparRegras, lerBruto, lerRegras, aplicarAjustes, CHAVES_CACHE } from './store.js';
 import { DONO_LABEL, proximoDono, conciliar, contarAlertas, buildSnapshot, alertas, normalizarNomeConta } from './core.js';
 import { serializarAjustes, lerAjustes, nomeArquivo } from './ajustes.js';
 import { normalizarUrl, urlValida, sincronizar } from './sync.js';
@@ -271,22 +271,29 @@ function viewCasa(s) {
 
   pecas.push(card('Hoje', dataLonga(new Date()), listaHoje(estadoHoje), { chip: chipHoje, largo: true }));
 
-  const tomSaldo = c.saldo < 0 ? 'bad' : c.saldo < 200 ? 'warn' : 'ok';
+  const temFatura = c.faturaIncluida !== null && c.faturaIncluida !== undefined;
+  const saldoExibido = temFatura ? c.saldoComFatura : c.saldo;
+  const gastosExibidos = temFatura ? c.gastosComFatura : c.gastosTotal;
+  const dicaGastos = temFatura ? 'contas + diários + fatura Black' : 'fixos + variáveis + diários';
+
+  const tomSaldo = saldoExibido < 0 ? 'bad' : saldoExibido < 200 ? 'warn' : 'ok';
   const pendentesTxt = c.qtdPendentes > 0
-    ? `${qtd(c.qtdPendentes, 'conta', 'contas')} a pagar · ${money(c.pendente)}`
-    : 'Tudo pago neste mês';
+    ? `${qtd(c.qtdPendentes, 'conta', 'contas')} a pagar · ${money(c.pendente)}${temFatura && !cart.paga ? ` + fatura ${money(c.faturaIncluida)}` : ''}`
+    : temFatura && !cart.paga
+      ? `Fatura ${money(c.faturaIncluida)} a pagar`
+      : 'Tudo pago neste mês';
 
   pecas.push(card(
     'Caixa do mês',
     `${esc(s.periodo.mes)} de ${s.periodo.ano}`,
     `<div class="nx-hero-bloco">
-      ${heroKpi('Sobra do mês', money(c.saldo, { cor: true }), pendentesTxt)}
+      ${heroKpi('Sobra do mês', money(saldoExibido, { cor: true }), pendentesTxt)}
       <div class="nx-kpis">
         ${kpi('Receitas', money(c.receitas), 'em conta')}
-        ${kpi('Gastos', money(c.gastosTotal), 'fixos + variáveis + diários')}
+        ${kpi('Gastos', money(gastosExibidos), dicaGastos)}
       </div>
     </div>
-    ${barra('Contas pagas', `${pct(c.pctPago)} · ${money(c.pago)} de ${money(c.pago + c.pendente)}`, c.pctPago, c.pctPago >= 80 ? '' : 'warn')}
+    ${barra('Contas pagas', `${pct(c.pctPagoConsolidado)} · ${money(c.pagoConsolidado)} de ${money(c.pagoConsolidado + c.pendenteConsolidado)}`, c.pctPagoConsolidado, c.pctPagoConsolidado >= 80 ? '' : 'warn')}
     ${c.maioresPendentes.length
       ? `<div>${lista(c.maioresPendentes, (p) => ({ nome: p.nome, valor: p.valor, nota: 'a pagar' }))}</div>`
       : ''}`,
@@ -667,10 +674,18 @@ function aplicarPrivacidade(ativo) {
   botao.title = valor ? 'Mostrar valores' : 'Esconder valores';
 }
 
-/* ------------------------------------------- atendimentos (nuvem) */
-let buscandoAtend = false;
+/* ------------------------------------------- nuvem dos apps (somente leitura) */
+const URL_MATRIX =
+  'https://script.google.com/macros/s/AKfycbyTXjWm4651tmwl4AujcG299cHBYGmECtLKoTruRaI7y9kzNOKr58QeKp0O46Erxb7DFQ/exec';
+const TOKEN_MATRIX_PADRAO = 'MatrixReloaded2026!';
+const URL_FATURAS =
+  'https://script.google.com/macros/s/AKfycbzXFXbZQ8TfHYwntMXg5k1lI_1pzBx7rTwVYycNESff8KC3DV95CRq15OrcP6dsC2_F/exec';
 
-/** JSONP: o Apps Script dela não manda CORS. Resolve `null` em qualquer falha. */
+let buscandoAtend = false;
+let buscandoMatrix = false;
+let buscandoFaturas = false;
+
+/** JSONP: o Apps Script não manda CORS. Resolve `null` em qualquer falha. */
 function jsonp(url, timeoutMs = 12000) {
   return new Promise((resolve) => {
     const nome = '__nexo_cb_' + Math.random().toString(36).slice(2);
@@ -712,15 +727,26 @@ function jsonp(url, timeoutMs = 12000) {
   });
 }
 
+/** Tenta fetch JSON; se bloquear por CORS, cai no JSONP. */
+async function lerJsonRemoto(url) {
+  try {
+    const resp = await fetch(url, { method: 'GET', mode: 'cors', credentials: 'omit', cache: 'no-store' });
+    if (resp.ok) return await resp.json();
+  } catch {
+    /* CORS ou sem rede: tenta JSONP */
+  }
+  return jsonp(url);
+}
+
 /**
  * Busca os atendimentos na nuvem quando este aparelho não tem os dados locais
  * (ou quando o retrato guardado ficou velho). Falha em silêncio: sem rede, a
  * tela continua com o que existe.
  */
-async function atualizarAtendimentos() {
+async function atualizarAtendimentos(forcar = false) {
   if (buscandoAtend) return;
   const cache = lerPreferencia(CHAVE_CACHE, null);
-  if (!precisaBuscar({ cacheEm: cache && cache.atualizadoEm })) return;
+  if (!forcar && !precisaBuscar({ cacheEm: cache && cache.atualizadoEm })) return;
 
   buscandoAtend = true;
   try {
@@ -733,6 +759,69 @@ async function atualizarAtendimentos() {
   } finally {
     buscandoAtend = false;
   }
+}
+
+/**
+ * Busca o estado mais recente do Matrix na planilha oficial e grava em `nexo_matrix_cache`.
+ * Regra 1 respeitada: só escreve em chave `nexo_*`.
+ */
+async function atualizarMatrixRemoto(forcar = false) {
+  if (buscandoMatrix) return;
+  const cache = lerPreferencia(CHAVES_CACHE.matrix, null);
+  if (!forcar && !precisaBuscar({ cacheEm: cache && cache.atualizadoEm, validadeHoras: 0.25 })) return;
+
+  buscandoMatrix = true;
+  try {
+    let url = URL_MATRIX;
+    let token = TOKEN_MATRIX_PADRAO;
+    try {
+      url = (localStorage.getItem('matrix_cloud_url') || URL_MATRIX).trim();
+      token = (localStorage.getItem('matrix_cloud_token') || TOKEN_MATRIX_PADRAO).trim();
+    } catch {
+      /* ignore */
+    }
+    const sep = url.includes('?') ? '&' : '?';
+    const res = await lerJsonRemoto(`${url}${sep}action=get_state&token=${encodeURIComponent(token)}&_t=${Date.now()}`);
+    const estado = res && (res.data || res.state);
+    if (!estado || !estado.anos) return;
+    if (!estado.atualizadoEm) estado.atualizadoEm = new Date().toISOString();
+    salvarPreferencia(CHAVES_CACHE.matrix, estado);
+    render();
+  } finally {
+    buscandoMatrix = false;
+  }
+}
+
+/**
+ * Busca ajustes e itens extras atuais do Faturas na nuvem e grava em `nexo_faturas_cache`.
+ */
+async function atualizarFaturasRemoto(forcar = false) {
+  if (buscandoFaturas) return;
+  const cache = lerPreferencia(CHAVES_CACHE.faturas, null);
+  if (!forcar && !precisaBuscar({ cacheEm: cache && cache.atualizadoEm, validadeHoras: 0.25 })) return;
+
+  buscandoFaturas = true;
+  try {
+    const res = await lerJsonRemoto(`${URL_FATURAS}?action=load&_t=${Date.now()}`);
+    const d = res && (res.data || res);
+    if (!d || (!d.extraItems && !d.overrides && !d.pv4_extra && !d.pv4_over)) return;
+    salvarPreferencia(CHAVES_CACHE.faturas, {
+      overrides: d.overrides || d.pv4_over || {},
+      extras: d.extraItems || d.pv4_extra || [],
+      sim: d.simItems || d.pv4_sim || [],
+      profile: d.profile || d.pv4_profile || {},
+      atualizadoEm: (d.meta && d.meta.savedAt) || new Date().toISOString()
+    });
+    render();
+  } finally {
+    buscandoFaturas = false;
+  }
+}
+
+function atualizarFontesNuvem(forcar = false) {
+  atualizarMatrixRemoto(forcar);
+  atualizarFaturasRemoto(forcar);
+  atualizarAtendimentos(forcar);
 }
 
 /* ---------------------------------------------------------- instalar app */
@@ -790,7 +879,7 @@ function render() {
 
   $('#view').innerHTML = corpo;
   $('#launcher').innerHTML = launcher(snapshot);
-  atualizarAtendimentos();
+  atualizarFontesNuvem();
   renderAjustes();
 
   const aviso = snapshot.avisos[0];
@@ -870,6 +959,7 @@ function iniciar() {
   });
 
   $('#btn-atualizar').addEventListener('click', () => {
+    atualizarFontesNuvem(true);
     render();
     const btn = $('#btn-atualizar');
     btn.classList.add('is-ok');

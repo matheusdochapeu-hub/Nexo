@@ -94,14 +94,86 @@ export function normChave(s) {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
+/** Identifica item de Caronas USP (provisão nos fixos / lançamentos diários). */
+export function isCaronaItem(it) {
+  if (!it) return false;
+  const n = String(it.nome || '').toLowerCase().trim();
+  const c = String(it.categoria || '').toLowerCase().trim();
+  if (n.includes('carona')) return true;
+  if (c.includes('transporte') && (n.includes('usp') || n.includes('são carlos') || n.includes('sao carlos'))) return true;
+  return false;
+}
+
+/** Identifica transferência/repasse interno do Matheus para a Scarlet pagar a fatura Nubank. */
+export function isTransferenciaParaScarlet(it) {
+  if (!it) return false;
+  if (it.transferenciaScarlet === true) return true;
+  const n = String(it.nome || '').toLowerCase().trim();
+  const desc = String(it.descricao || '').toLowerCase();
+  const obs = String(it.obs || '').toLowerCase();
+  const cat = String(it.categoria || '').toLowerCase();
+
+  if (cat.includes('transferência scarlet') || cat.includes('transferencia scarlet') || cat.includes('repasse scarlet')) return true;
+  if (n === 'scarlet') return true;
+  if ((n.includes('transferência') || n.includes('transferencia') || n.includes('transf') || n.includes('pix') || n.includes('repasse')) && n.includes('scarlet')) return true;
+  if ((desc.includes('transferência') || desc.includes('transferencia')) && desc.includes('scarlet')) return true;
+  if ((obs.includes('transferência') || obs.includes('transferencia') || obs.includes('transf') || obs.includes('pix')) && obs.includes('scarlet')) return true;
+  return false;
+}
+
+/** Identifica despesa própria da Scarlet (Psicóloga, investimentos, etc.). MEI é do Matheus. */
+export function isGastoDaScarlet(it) {
+  if (!it) return false;
+  const n = String(it.nome || '').toLowerCase().trim();
+  const tit = String(it.titular || '').toLowerCase().trim();
+  const ren = String(it.renda || '').toLowerCase().trim();
+  const cta = String(it.conta || '').toLowerCase().trim();
+  const cat = String(it.categoria || '').toLowerCase().trim();
+
+  if (n === 'mei' || n.startsWith('mei ') || n.includes('das mei')) return false;
+  if (tit === 'matheus') return false;
+  if (tit === 'scarlet') return true;
+  if (n === 'nubank scarlet') return true;
+  if (ren === 'ganhos_scarlet' || ren === 'outras_rendas_scarlet') return true;
+  if (cta.includes('scarlet')) return true;
+  if (cat === 'fisio scarlet' || cat === 'outras rendas scarlet' || cat === 'investimentos scarlet' || cat.includes('psicó')) return true;
+  if (n.includes('psicologa') || n.includes('psicóloga')) return true;
+  return false;
+}
+
+/** Identifica receita pertencente à Scarlet (Atendimentos FisioFlow ou Outras Rendas dela). */
+export function isReceitaDaScarlet(r) {
+  if (!r || isBeneficio(r)) return false;
+  const n = String(r.nome || '').toLowerCase().trim();
+  const c = String(r.categoria || '').toLowerCase().trim();
+  const ren = String(r.renda || '').toLowerCase().trim();
+  const cta = String(r.conta || '').toLowerCase().trim();
+  const tit = String(r.titular || '').toLowerCase().trim();
+  const id = String(r.id || '').toLowerCase().trim();
+
+  if (tit === 'scarlet') return true;
+  if (ren === 'ganhos_scarlet' || ren === 'outras_rendas_scarlet' || ren.includes('scarlet')) return true;
+  if (cta === 'scarlet_fisio' || cta === 'scarlet_extra' || cta === 'scarlet' || cta === 'nubank_scarlet' || cta === 'credito_nubank_scarlet' || cta.includes('scarlet')) return true;
+  if (c === 'outras rendas scarlet' || c === 'fisio scarlet' || c.includes('scarlet')) return true;
+  if (id.startsWith('rec_scarlet') || id.startsWith('rec_fisio') || id === 'sat_fisioflow_view') return true;
+  if (n.includes('scarlet') || n.includes('fisio')) return true;
+  return false;
+}
+
 /**
  * Dono padrão de um lançamento, antes de qualquer regra:
+ * - despesa/receita da Scarlet → 'scarlet';
  * - conta fixa/variável/início de ano → é da casa;
  * - diário no VA/VR → é da casa (comida é casa); nos cartões/débito → de quem lançou (Matheus);
  * - receita de benefício → casa; salário/extra → Matheus.
  */
 export function donoPadrao(item, tipo) {
-  if (tipo === 'receita') return isBeneficio(item) ? 'casa' : 'matheus';
+  if (tipo === 'receita') {
+    if (isBeneficio(item)) return 'casa';
+    if (isReceitaDaScarlet(item)) return 'scarlet';
+    return 'matheus';
+  }
+  if (isGastoDaScarlet(item) && !isTransferenciaParaScarlet(item)) return 'scarlet';
   if (tipo === 'diario') return isContaBeneficio(item && item.conta) ? 'casa' : 'matheus';
   return 'casa';
 }
@@ -304,10 +376,17 @@ function cartoes(sat, month, now, local, base) {
 
   if (temAjustes) {
     const indice = indiceDoMes(now.getFullYear(), now.getMonth() + 1);
-    const dados = { base, overrides: local.overrides, extras: local.extras, sim: local.sim };
+    const dados = {
+      base,
+      overrides: local.overrides,
+      extras: local.extras,
+      sim: local.sim,
+      incluirSimulados: local.incluirSimulados === true
+    };
     black = totalDoMes(indice, dados);
-    futuras = totalDoMes(indice + 1, dados);
+    futuras = totalDoMes(indice + 1, { ...dados, incluirSimulados: local.incluirSimulados !== false });
     meta = local.profile && local.profile.meta != null ? num(local.profile.meta) : null;
+    atualizadoEm = local.atualizadoEm || null;
     fonte = 'faturas';
     baseados = tamanhoBase(base);
   } else if (f) {
@@ -324,12 +403,15 @@ function cartoes(sat, month, now, local, base) {
     fonte = 'scarlet';
   }
 
+  const faturaPaga = !!(month && month.scarlet && month.scarlet.faturaPaga === true);
+
   return {
     black,
     // O cartão não é do Matheus: é pago pela Scarlet (mesmo sendo gasto do casal).
     matheus: null,
     scarlet: black,
     total: black,
+    paga: faturaPaga,
     meta,
     pctMeta: meta && meta > 0 && black !== null ? Math.round((black / meta) * 100) : null,
     futuras,
@@ -401,22 +483,41 @@ export function buildSnapshot(input = {}) {
   const month = picked.month;
   const sat = (matrix && matrix.satellites) || null;
 
-  const receitas = arr(month && month.receitas).map((r) => ({
+  // O pacote da planilha do Matrix omite `pago: false` para economizar caracteres
+  // (presume `pago: true` apenas quando `pago === true`). Já em objetos normais sem
+  // compactação, `receita` sem `pago` explícito segue `r.pago !== false`.
+  const ehCompactadoDaNuvem = !!(matrix && matrix.deletedItens && month && !month.totais);
+  const estaPago = (item) => (ehCompactadoDaNuvem ? item.pago === true : item.pago !== false);
+
+  const receitasBrutas = arr(month && month.receitas);
+  const receitas = receitasBrutas.map((r) => ({
     nome: r.nome || 'Receita',
     valor: num(r.valor),
     categoria: r.categoria || '',
     conta: r.conta || '',
     beneficio: isBeneficio(r),
-    pago: r.pago !== false
+    scarlet: isReceitaDaScarlet(r),
+    pago: estaPago(r)
   }));
 
-  const fixos = arr(month && month.fixos);
-  const outros = arr(month && month.outros);
-  const inicioAno = arr(month && month.inicioAno);
+  const fixosBrutos = arr(month && month.fixos).map((f) => ({ ...f, pago: estaPago(f) }));
+  const outros = arr(month && month.outros).map((o) => ({ ...o, pago: estaPago(o) }));
+  const inicioAno = arr(month && month.inicioAno).map((x) => ({ ...x, pago: estaPago(x) }));
 
-  const diarios = arr(month && month.diarios).filter(
-    (d) => !d.jaAlocadoVariavel && !isContaBeneficio(d.conta)
+  const diarios = arr(month && month.diarios)
+    .filter((d) => !d.jaAlocadoVariavel && !isContaBeneficio(d.conta))
+    .map((d) => ({ ...d, pago: estaPago(d) }));
+
+  // Provisão de Caronas (mesma regra do Matrix: se não paga, abate o já consumido nos diários)
+  const caronaConsumo = round2(
+    diarios.filter((d) => isCaronaItem(d)).reduce((a, d) => a + num(d.valor), 0)
   );
+  const fixos = fixosBrutos.map((f) => {
+    if (isCaronaItem(f) && f.pago === false && caronaConsumo > 0) {
+      return { ...f, valor: round2(Math.max(0, num(f.valor) - caronaConsumo)), valorProvisao: num(f.valor) };
+    }
+    return f;
+  });
 
   const pag = resumoPagamento([...fixos, ...outros, ...inicioAno]);
 
@@ -434,6 +535,7 @@ export function buildSnapshot(input = {}) {
     conta: it.conta || '',
     categoria: it.categoria || '',
     pago: it.pago !== false,
+    transferenciaScarlet: isTransferenciaParaScarlet(it),
     dono: resolverDono(it, tipo, mapaRegras)
   }));
 
@@ -445,7 +547,17 @@ export function buildSnapshot(input = {}) {
   const listaPorDono = (dono) =>
     gastos.filter((g) => g.dono === dono).sort((a, b) => b.valor - a.valor);
 
-  const receitaPecunia = round2(receitas.filter((r) => !r.beneficio).reduce((a, r) => a + r.valor, 0));
+  // No Matrix, apenas receitas em pecúnia já pagas/recebidas entram no saldo líquido em conta
+  const receitasPecuniaPagas = receitas.filter((r) => !r.beneficio && r.pago);
+  const receitaPecunia = round2(receitasPecuniaPagas.reduce((a, r) => a + r.valor, 0));
+  const receitaMatheusPecunia = round2(
+    receitasPecuniaPagas.filter((r) => !r.scarlet).reduce((a, r) => a + r.valor, 0)
+  );
+  const receitaScarletExtras = round2(
+    receitasPecuniaPagas
+      .filter((r) => r.scarlet && !/fisio|atendimento/i.test(r.nome) && !/fisio/i.test(r.categoria))
+      .reduce((a, r) => a + r.valor, 0)
+  );
   const receitaBeneficio = round2(receitas.filter((r) => r.beneficio).reduce((a, r) => a + r.valor, 0));
   const gastoDiario = soma(diarios);
   const gastoTotal = round2(pag.total + gastoDiario);
@@ -468,6 +580,32 @@ export function buildSnapshot(input = {}) {
       : month && month.scarlet
         ? num(month.scarlet.ganhos)
         : null;
+
+  // Repasse interno do Matheus para a Scarlet (nas contas fixos/outros): não é despesa externa duas vezes quando a fatura é somada
+  const transfContas = [...fixos, ...outros].filter((it) => isTransferenciaParaScarlet(it));
+  const transfTotal = round2(transfContas.reduce((a, it) => a + num(it.valor), 0));
+  const transfPago = round2(transfContas.filter((it) => !!it.pago).reduce((a, it) => a + num(it.valor), 0));
+  const faturaValor = cartao && cartao.black !== null ? num(cartao.black) : 0;
+  const temFatura = cartao && cartao.black !== null;
+  const faturaPaga = !!(cartao && cartao.paga);
+
+  // Despesas consolidadas da casa com a fatura Nubank (idêntico ao fechamento consolidado do Matrix)
+  const gastosComFatura = temFatura
+    ? round2(Math.max(0, gastoTotal - transfTotal) + faturaValor)
+    : gastoTotal;
+  const saldoComFatura = round2(receitaPecunia - gastosComFatura);
+
+  // Contas pagas × pendentes consolidadas (inclui fatura Nubank sem duplicar o repasse interno)
+  const pagoConsolidado = temFatura
+    ? round2(Math.max(0, pag.pago - transfPago) + gastoDiario + (faturaPaga ? faturaValor : 0))
+    : pag.pago;
+  const pendenteConsolidado = temFatura
+    ? round2(Math.max(0, pag.pendente - (transfTotal - transfPago)) + (faturaPaga ? 0 : faturaValor))
+    : pag.pendente;
+  const totalConsolidadoBarra = round2(pagoConsolidado + pendenteConsolidado);
+  const pctPagoConsolidado = totalConsolidadoBarra > 0
+    ? Math.round((pagoConsolidado / totalConsolidadoBarra) * 100)
+    : 100;
 
   const avisos = [];
   if (!matrix) avisos.push('Matrix ainda não abriu neste navegador.');
@@ -496,12 +634,19 @@ export function buildSnapshot(input = {}) {
         gastosInicioAno: soma(inicioAno),
         gastosDiarios: gastoDiario,
         gastosTotal: gastoTotal,
+        gastosComFatura,
+        faturaIncluida: temFatura ? faturaValor : null,
+        repasseAbatido: temFatura ? transfTotal : 0,
         gastosPorDono: porDono,
         saldo: round2(receitaPecunia - gastoTotal),
+        saldoComFatura,
         pago: pag.pago,
         pendente: pag.pendente,
         qtdPendentes: pag.qtdPendentes,
         pctPago: pag.pctPago,
+        pagoConsolidado,
+        pendenteConsolidado,
+        pctPagoConsolidado,
         maioresPendentes: pag.pendentes.slice(0, 4),
         pendentes: pag.pendentes
       },
@@ -512,18 +657,20 @@ export function buildSnapshot(input = {}) {
       trabalho: trab
     },
     matheus: {
-      receitas: receitas.filter((r) => !r.beneficio),
-      totalReceitas: receitaPecunia,
+      receitas: receitas.filter((r) => !r.beneficio && !r.scarlet),
+      totalReceitas: receitaMatheusPecunia,
       cartao: cartao.matheus,
       gastos: listaPorDono('matheus'),
       totalGastos: porDono.matheus,
       fixos: soma(fixos),
       outros: soma(outros),
       diarios: gastoDiario,
-      saldo: round2(receitaPecunia - gastoTotal)
+      saldo: round2(receitaMatheusPecunia - gastoTotal)
     },
     scarlet: {
       ganhos: scarletGanhos,
+      outrasRendas: receitaScarletExtras,
+      repasse: transfPago,
       ganhosDe: trabAnterior ? ymAnterior : trab ? ym : null,
       emProducao: trab ? total(trab) : null,
       producaoDe: trab ? ym : null,

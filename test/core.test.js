@@ -558,3 +558,26 @@ test('scarlet: janeiro recebe o trabalho de dezembro (vira o ano)', () => {
   assert.equal(s.scarlet.ganhos, 1000);
   assert.equal(s.scarlet.ganhosDe, '2026-12');
 });
+
+test('caixa consolidado: abate provisão de caronas, inclui fatura e desconta repasse interno', () => {
+  const st = estadoMatrix();
+  st.anos[2026].Novembro.fixos.push({ id: 'fix_psi', nome: 'Psicóloga', valor: 600, conta: 'scarlet_fisio', renda: 'ganhos_scarlet', pago: true });
+  st.anos[2026].Novembro.outros.push({ id: 'out_sc', nome: 'Scarlet', valor: 1500, conta: 'salario_bb', descricao: 'Transferência fatura Nubank da Scarlet', pago: true });
+  st.anos[2026].Novembro.diarios.push({ id: 'd_car', nome: 'Carona USP', valor: 300, conta: 'pix_inter', pago: true });
+  st.anos[2026].Novembro.receitas.push({ id: 'r_sc', nome: 'Pgt sheila', valor: 4000, titular: 'scarlet', conta: 'scarlet_extra', pago: true });
+
+  const s = buildSnapshot({ matrix: st, now: AGORA });
+  // Caronas (921,85 pendente) é abatida pelos 300 já consumidos nos diários → 621,85 restante
+  const carona = s.casa.caixa.pendentes.find((p) => p.nome === 'Caronas');
+  assert.equal(carona.valor, 621.85);
+  // Psicóloga vai por padrão para Scarlet, não para Casa
+  assert.equal(s.scarlet.totalGastos, 600);
+  // Receitas do Matheus excluem as receitas da Scarlet
+  assert.equal(s.matheus.totalReceitas, 6386.24);
+  assert.equal(s.casa.caixa.receitas, 10386.24);
+  // gastosComFatura = (gastosTotal - repasse Scarlet 1500) + fatura 4883,05
+  assert.equal(s.casa.caixa.repasseAbatido, 1500);
+  assert.equal(s.casa.caixa.faturaIncluida, 4883.05);
+  assert.equal(s.casa.caixa.gastosComFatura, round2(s.casa.caixa.gastosTotal - 1500 + 4883.05));
+  assert.equal(s.casa.caixa.saldoComFatura, round2(10386.24 - s.casa.caixa.gastosComFatura));
+});
